@@ -16,6 +16,9 @@ class _CreateCoursePageState extends State<CreateCoursePage> {
   final _titleCtrl = TextEditingController();
   final _subtitleCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
+  final _priceCtrl = TextEditingController();
+  final _durationCtrl = TextEditingController();
+  final _thumbnailCtrl = TextEditingController();
   double _price = 0;
   int? _durationDays;
   String? _selectedCategory;
@@ -23,6 +26,7 @@ class _CreateCoursePageState extends State<CreateCoursePage> {
   String _dripType = 'none';
   List<dynamic> _categories = [];
   bool _saving = false;
+  bool _loadingCourse = false;
   bool _isEditing = false;
 
   @override
@@ -30,6 +34,9 @@ class _CreateCoursePageState extends State<CreateCoursePage> {
     super.initState();
     _isEditing = widget.editCourseId != null;
     _loadCategories();
+    if (_isEditing) {
+      _loadCourseData();
+    }
   }
 
   @override
@@ -37,7 +44,38 @@ class _CreateCoursePageState extends State<CreateCoursePage> {
     _titleCtrl.dispose();
     _subtitleCtrl.dispose();
     _descCtrl.dispose();
+    _priceCtrl.dispose();
+    _durationCtrl.dispose();
+    _thumbnailCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadCourseData() async {
+    setState(() => _loadingCourse = true);
+    try {
+      final res = await _api.get('/courses/${widget.editCourseId}');
+      if (res.data['success'] == true && mounted) {
+        final c = res.data['data'];
+        setState(() {
+          _titleCtrl.text = c['title'] ?? '';
+          _subtitleCtrl.text = c['subtitle'] ?? '';
+          _descCtrl.text = c['description'] ?? '';
+          _thumbnailCtrl.text = c['thumbnail_url'] ?? '';
+          _price = double.tryParse(c['price']?.toString() ?? '0') ?? 0;
+          if (_price > 0) _priceCtrl.text = _price.toString();
+          if (c['duration_days'] != null) {
+            _durationDays = c['duration_days'];
+            _durationCtrl.text = _durationDays.toString();
+          }
+          _selectedCategory = c['category_id'];
+          _level = c['level'] ?? 'all';
+          _dripType = c['drip_type'] ?? 'none';
+          _loadingCourse = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loadingCourse = false);
+    }
   }
 
   Future<void> _loadCategories() async {
@@ -58,8 +96,9 @@ class _CreateCoursePageState extends State<CreateCoursePage> {
         'title': _titleCtrl.text,
         'subtitle': _subtitleCtrl.text,
         'description': _descCtrl.text,
-        'price': _price,
-        'duration_days': _durationDays,
+        'price': double.tryParse(_priceCtrl.text) ?? 0,
+        'duration_days': int.tryParse(_durationCtrl.text),
+        'thumbnail_url': _thumbnailCtrl.text.isNotEmpty ? _thumbnailCtrl.text : null,
         'category_id': _selectedCategory,
         'level': _level,
         'drip_type': _dripType,
@@ -97,11 +136,13 @@ class _CreateCoursePageState extends State<CreateCoursePage> {
       appBar: AppBar(title: Text(_isEditing ? 'تعديل الكورس' : 'إنشاء كورس جديد')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+        child: _loadingCourse
+            ? const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()))
+            : Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
               TextFormField(
                 controller: _titleCtrl,
                 decoration: const InputDecoration(labelText: 'عنوان الكورس'),
@@ -119,21 +160,32 @@ class _CreateCoursePageState extends State<CreateCoursePage> {
                 maxLines: 4,
               ),
               const SizedBox(height: 16),
+              TextFormField(
+                controller: _thumbnailCtrl,
+                decoration: const InputDecoration(labelText: 'رابط الصورة المصغرة (مؤقتاً)'),
+              ),
+              const SizedBox(height: 16),
               Row(
                 children: [
                   Expanded(
                     child: TextFormField(
+                      controller: _priceCtrl,
                       decoration: const InputDecoration(labelText: 'السعر (د.ل)', prefixText: 'د.ل '),
                       keyboardType: TextInputType.number,
-                      onChanged: (v) => _price = double.tryParse(v) ?? 0,
+                      validator: (v) {
+                        if (v != null && v.isNotEmpty && double.tryParse(v) == null) {
+                          return 'سعر غير صالح';
+                        }
+                        return null;
+                      },
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: TextFormField(
+                      controller: _durationCtrl,
                       decoration: const InputDecoration(labelText: 'مدة الاشتراك (أيام)'),
                       keyboardType: TextInputType.number,
-                      onChanged: (v) => _durationDays = int.tryParse(v),
                     ),
                   ),
                 ],

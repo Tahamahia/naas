@@ -245,6 +245,79 @@ router.put('/lessons/:id', authenticate, async (c) => {
   return c.json(formatResponse(true, null, 'Lesson updated'));
 });
 
+// PUT /api/sections/:id — rename section
+router.put('/sections/:id', authenticate, async (c) => {
+  const user = c.get('user');
+  const db = c.env.DB;
+  const { id } = c.req.param();
+  const { title } = await c.req.json();
+  await db.prepare('UPDATE sections SET title = COALESCE(?, title) WHERE id = ?').bind(title || null, id).run();
+  return c.json(formatResponse(true, null, 'Section updated'));
+});
+
+// PUT /api/courses/:id/sections/reorder
+router.put('/:id/sections/reorder', authenticate, async (c) => {
+  const db = c.env.DB;
+  const { sections } = await c.req.json(); // [{ id, sort_order }]
+  for (const s of sections) {
+    await db.prepare('UPDATE sections SET sort_order = ? WHERE id = ?').bind(s.sort_order, s.id).run();
+  }
+  return c.json(formatResponse(true, null, 'Sections reordered'));
+});
+
+// PUT /api/sections/:sectionId/lessons/reorder
+router.put('/sections/:sectionId/lessons/reorder', authenticate, async (c) => {
+  const db = c.env.DB;
+  const { lessons } = await c.req.json(); // [{ id, sort_order }]
+  for (const l of lessons) {
+    await db.prepare('UPDATE lessons SET sort_order = ? WHERE id = ?').bind(l.sort_order, l.id).run();
+  }
+  return c.json(formatResponse(true, null, 'Lessons reordered'));
+});
+
+// POST /api/courses/:courseId/sections/:sectionId/bunny-video
+router.post('/:courseId/sections/:sectionId/bunny-video', authenticate, async (c) => {
+  const user = c.get('user');
+  const env = c.env;
+  const db = env.DB;
+  const { courseId, sectionId } = c.req.param();
+  const { title } = await c.req.json();
+
+  const course = await db.prepare('SELECT teacher_id FROM courses WHERE id = ?').bind(courseId).first() as any;
+  if (!course) return c.json(formatResponse(false, null, 'Course not found'), 404);
+
+  // 1. Create video in Bunny Stream
+  const bunnyRes = await fetch(`https://video.bunnycdn.com/library/${env.BUNNY_STREAM_LIBRARY_ID}/videos`, {
+    method: 'POST',
+    headers: {
+      'AccessKey': env.BUNNY_STREAM_API_KEY,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
+    body: JSON.stringify({ title: title || 'Untitled Lesson' }),
+  });
+
+  const bunnyData: any = await bunnyRes.json();
+  if (!bunnyRes.ok || !bunnyData.guid) {
+    return c.json(formatResponse(false, null, 'Failed to create video in Bunny Stream'), 500);
+  }
+
+  // 2. Create lesson in D1
+  const lessonId = generateId();
+  await db.prepare(
+    `INSERT INTO lessons (id, section_id, title, type, video_url, video_status, sort_order)
+     VALUES (?, ?, ?, 'video', ?, 'uploading', 0)`
+  ).bind(lessonId, sectionId, title || 'Untitled', bunnyData.guid).run();
+
+  // Return the guid and access key (temporarily) to the teacher so they can PUT the file from frontend
+  return c.json(formatResponse(true, {
+    lessonId,
+    guid: bunnyData.guid,
+    libraryId: env.BUNNY_STREAM_LIBRARY_ID,
+    uploadKey: env.BUNNY_STREAM_API_KEY // Note: in production use a scoped Edge Token
+  }, 'Lesson created and ready for upload'), 201);
+});
+
 // DELETE /api/lessons/:id
 router.delete('/lessons/:id', authenticate, async (c) => {
   const db = c.env.DB;

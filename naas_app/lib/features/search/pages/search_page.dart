@@ -5,7 +5,8 @@ import '../../../models/course_model.dart';
 import '../../course_detail/pages/course_detail_page.dart';
 
 class SearchPage extends StatefulWidget {
-  const SearchPage({super.key});
+  final String? initialCategoryId;
+  const SearchPage({super.key, this.initialCategoryId});
 
   @override
   State<SearchPage> createState() => _SearchPageState();
@@ -26,6 +27,12 @@ class _SearchPageState extends State<SearchPage> {
   void initState() {
     super.initState();
     _loadCategories();
+    if (widget.initialCategoryId != null) {
+      _selectedCategory = widget.initialCategoryId;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _search();
+      });
+    }
   }
 
   @override

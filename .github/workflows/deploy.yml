@@ -1,34 +1,54 @@
-name: Deploy to Cloudflare Workers
+name: Deploy to Cloudflare
 
 on:
   push:
-    branches: [main]
-    paths:
-      - 'workers/**'
-  workflow_dispatch:
+    branches:
+      - main
 
 jobs:
-  deploy:
+  deploy-frontend:
     runs-on: ubuntu-latest
-    name: Deploy Workers API
-
-    defaults:
-      run:
-        working-directory: workers
-
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.x'
+          channel: 'stable'
+
+      - name: Flutter Pub Get
+        run: flutter pub get
+        working-directory: naas_app
+
+      - name: Build Web
+        run: flutter build web
+        working-directory: naas_app
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: naas
+          directory: naas_app/build/web
+          branch: main
+
+  deploy-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: '20'
 
       - name: Install dependencies
         run: npm ci
-
-      - name: Type check
-        run: npx tsc --noEmit
+        working-directory: workers
 
       - name: Deploy to Cloudflare Workers
         uses: cloudflare/wrangler-action@v3

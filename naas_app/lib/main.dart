@@ -8,6 +8,10 @@ import 'features/cart/pages/cart_page.dart';
 import 'features/profile/pages/profile_page.dart';
 import 'features/search/pages/search_page.dart';
 import 'features/subscriptions/pages/subscriptions_page.dart';
+import 'features/admin/pages/admin_dashboard.dart';
+import 'features/admin/pages/admin_users_page.dart';
+import 'features/teacher_dashboard/pages/teacher_dashboard.dart';
+import 'features/teacher/pages/manage_lessons_page.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -66,28 +70,48 @@ class MainNavigation extends StatefulWidget {
 class _MainNavigationState extends State<MainNavigation> {
   int _currentIndex = 0;
 
-  final pages = const [
-    HomePage(),
-    SearchPage(),
-    SubscriptionsPage(),
-    CartPage(),
-    ProfilePage(),
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final user = context.select((AuthBloc b) => b.state is AuthAuthenticated ? (b.state as AuthAuthenticated).user : null);
+    if (user == null) return const Scaffold();
+
+    List<Widget> pages = [];
+    List<NavigationDestination> dests = [];
+
+    if (user.isAdmin) {
+      pages = const [HomePage(), AdminDashboard(), AdminUsersPage(), ProfilePage()];
+      dests = const [
+        NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'الرئيسية'),
+        NavigationDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard), label: 'اللوحة'),
+        NavigationDestination(icon: Icon(Icons.people_outline), selectedIcon: Icon(Icons.people), label: 'المستخدمين'),
+        NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'حسابي'),
+      ];
+    } else if (user.isTeacher) {
+      pages = const [HomePage(), TeacherDashboard(), ProfilePage()];
+      dests = const [
+        NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'الرئيسية'),
+        NavigationDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard), label: 'اللوحة'),
+        NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'حسابي'),
+      ];
+    } else {
+      pages = const [HomePage(), SearchPage(), SubscriptionsPage(), CartPage(), ProfilePage()];
+      dests = const [
+        NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'الرئيسية'),
+        NavigationDestination(icon: Icon(Icons.search_outlined), selectedIcon: Icon(Icons.search), label: 'بحث'),
+        NavigationDestination(icon: Icon(Icons.book_outlined), selectedIcon: Icon(Icons.book), label: 'كورساتي'),
+        NavigationDestination(icon: Icon(Icons.shopping_cart_outlined), selectedIcon: Icon(Icons.shopping_cart), label: 'السلة'),
+        NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'حسابي'),
+      ];
+    }
+
+    if (_currentIndex >= pages.length) _currentIndex = 0;
+
     return Scaffold(
       body: pages[_currentIndex],
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
         onDestinationSelected: (i) => setState(() => _currentIndex = i),
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'الرئيسية'),
-          NavigationDestination(icon: Icon(Icons.search_outlined), selectedIcon: Icon(Icons.search), label: 'بحث'),
-          NavigationDestination(icon: Icon(Icons.book_outlined), selectedIcon: Icon(Icons.book), label: 'كورساتي'),
-          NavigationDestination(icon: Icon(Icons.shopping_cart_outlined), selectedIcon: Icon(Icons.shopping_cart), label: 'السلة'),
-          NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'حسابي'),
-        ],
+        destinations: dests,
       ),
     );
   }

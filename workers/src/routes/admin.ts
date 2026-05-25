@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { formatResponse, generateId } from '../utils/helpers';
+import { hashPassword } from '../utils/crypto';
 import { authenticate, requireRoles } from '../middleware/auth';
 import type { Env } from '../index';
 
@@ -173,13 +174,12 @@ router.get('/admins', requireRoles('super_admin'), async (c) => {
 router.post('/admins', requireRoles('super_admin'), async (c) => {
   const db = c.env.DB;
   const { email, full_name, password } = await c.req.json();
-  const { hash } = await import('bcryptjs');
 
   const existing = await db.prepare('SELECT id FROM users WHERE email = ?').bind(email).first();
   if (existing) return c.json(formatResponse(false, null, 'Email already exists'), 409);
 
   const id = generateId();
-  const passwordHash = await hash(password, 10);
+  const passwordHash = await hashPassword(password);
   await db.prepare(
     "INSERT INTO users (id, email, password_hash, full_name, role, email_verified) VALUES (?, ?, ?, ?, 'admin', 1)"
   ).bind(id, email, passwordHash, full_name).run();

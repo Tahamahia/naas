@@ -27,17 +27,15 @@ import reportRoutes from './routes/reports';
 import uploadRoutes from './routes/upload';
 import webhookRoutes from './routes/webhook';
 import { expireSubscriptions } from './cron/expire_subscriptions';
-import { WalletDO } from './durable_objects/wallet_do';
 
 export interface Env {
   DB: D1Database;
   ASSETS: R2Bucket;
   CACHE: KVNamespace;
-  WALLET: DurableObjectNamespace;
   JWT_SECRET: string;
   REFRESH_SECRET: string;
-  BUNNY_API_KEY: string;
-  BUNNY_LIBRARY_ID: string;
+  BUNNY_STREAM_LIBRARY_ID: string;
+  BUNNY_STREAM_API_KEY: string;
   BUNNY_CDN_HOSTNAME: string;
 }
 
@@ -94,8 +92,8 @@ app.onError((err, c) => {
   return c.json(formatResponse(false, null, 'Internal server error'), 500);
 });
 
-// Durable Object export
-export { WalletDO };
+// Durable Object export (comment out if not using)
+// export { WalletDO };
 
 // Worker entry point
 export default {

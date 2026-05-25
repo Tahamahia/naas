@@ -37,14 +37,7 @@ router.post('/deposit/manual', authenticate, async (c) => {
   ).bind(id, user.userId, amount, u.wallet_balance, u.wallet_balance,
     `Manual deposit: ${reference_number || 'No ref'}`).run();
 
-  // Store deposit proof reference
-  await db.prepare('UPDATE users SET wallet_balance = wallet_balance + ? WHERE id = ?')
-    .bind(amount, user.userId).run();
-
-  await db.prepare(
-    `UPDATE transactions SET balance_after = (SELECT wallet_balance FROM users WHERE id = ?), status = 'completed'
-     WHERE id = ?`
-  ).bind(user.userId, id).run();
+  // Note: We DO NOT update wallet_balance here. That happens only when admin confirms.
 
   return c.json(formatResponse(true, { id, amount }, 'Deposit recorded. Pending admin confirmation.'));
 });
@@ -54,10 +47,18 @@ router.post('/deposit/confirm', authenticate, requireRoles('super_admin', 'admin
   const db = c.env.DB;
   const { transaction_id } = await c.req.json();
 
-  const tx = await db.prepare('SELECT * FROM transactions WHERE id = ?').bind(transaction_id).first() as any;
-  if (!tx) return c.json(formatResponse(false, null, 'Transaction not found'), 404);
+  const tx = await db.prepare('SELECT * FROM transactions WHERE id = ? AND status = ?').bind(transaction_id, 'pending').first() as any;
+  if (!tx) return c.json(formatResponse(false, null, 'Pending transaction not found'), 404);
 
-  await db.prepare("UPDATE transactions SET status = 'completed' WHERE id = ?").bind(transaction_id).run();
+  // Update user balance
+  await db.prepare('UPDATE users SET wallet_balance = wallet_balance + ? WHERE id = ?')
+    .bind(tx.amount, tx.user_id).run();
+
+  // Update transaction status and balance_after
+  await db.prepare(
+    `UPDATE transactions SET balance_after = (SELECT wallet_balance FROM users WHERE id = ?), status = 'completed'
+     WHERE id = ?`
+  ).bind(tx.user_id, transaction_id).run();
 
   return c.json(formatResponse(true, null, 'Deposit confirmed'));
 });
@@ -67,15 +68,13 @@ router.post('/deposit/reject', authenticate, requireRoles('super_admin', 'admin'
   const db = c.env.DB;
   const { transaction_id } = await c.req.json();
 
-  const tx = await db.prepare('SELECT * FROM transactions WHERE id = ?').bind(transaction_id).first() as any;
-  if (!tx) return c.json(formatResponse(false, null, 'Transaction not found'), 404);
+  const tx = await db.prepare('SELECT * FROM transactions WHERE id = ? AND status = ?').bind(transaction_id, 'pending').first() as any;
+  if (!tx) return c.json(formatResponse(false, null, 'Pending transaction not found'), 404);
 
-  // Reverse the balance
-  await db.prepare('UPDATE users SET wallet_balance = wallet_balance - ? WHERE id = ?')
-    .bind(Math.abs(tx.amount), tx.user_id).run();
+  // Since it was pending, the balance was never added, so we only update the transaction status
   await db.prepare("UPDATE transactions SET status = 'cancelled' WHERE id = ?").bind(transaction_id).run();
 
-  return c.json(formatResponse(true, null, 'Deposit rejected and reversed'));
+  return c.json(formatResponse(true, null, 'Deposit rejected'));
 });
 
 // POST /api/wallet/refund — student requests refund (within 24h)

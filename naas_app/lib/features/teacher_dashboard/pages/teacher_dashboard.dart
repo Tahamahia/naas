@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../core/api/api_client.dart';
+import '../../teacher/pages/create_course_page.dart';
+import '../../teacher/pages/manage_lessons_page.dart';
+import '../../teacher/pages/withdrawal_page.dart';
 
 class TeacherDashboard extends StatefulWidget {
   const TeacherDashboard({super.key});
@@ -86,7 +89,9 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                               ),
                             ),
                             TextButton.icon(
-                              onPressed: () {},
+                              onPressed: () {
+                                Navigator.push(context, MaterialPageRoute(builder: (_) => const WithdrawalPage()));
+                              },
                               icon: const Icon(Icons.download, size: 18),
                               label: const Text('طلب سحب'),
                             ),
@@ -103,45 +108,78 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                       const Text('كورساتي', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                       const Spacer(),
                       TextButton.icon(
-                        onPressed: () {},
+                        onPressed: () {
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateCoursePage()));
+                        },
                         icon: const Icon(Icons.add),
                         label: const Text('إضافة كورس'),
                       ),
                     ],
                   ),
                   const SizedBox(height: 8),
-                  ..._courses.map((c) => Card(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    child: ListTile(
-                      leading: Container(
-                        width: 50, height: 50,
-                        decoration: BoxDecoration(
-                          color: c['status'] == 'published' ? Colors.green.shade50 : Colors.orange.shade50,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Icon(
-                          c['status'] == 'published' ? Icons.check_circle : Icons.edit,
-                          color: c['status'] == 'published' ? Colors.green : Colors.orange,
+                  if (_courses.isEmpty)
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 40),
+                        child: Column(
+                          children: [
+                            Icon(Icons.video_library_outlined, size: 60, color: Colors.grey.shade400),
+                            const SizedBox(height: 16),
+                            Text('ليس لديك أي كورسات بعد', style: TextStyle(color: Colors.grey.shade600, fontSize: 16)),
+                            const SizedBox(height: 16),
+                            ElevatedButton.icon(
+                              onPressed: () {
+                                Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateCoursePage())).then((_) => _loadData());
+                              },
+                              icon: const Icon(Icons.add),
+                              label: const Text('أنشئ كورس جديد'),
+                            ),
+                          ],
                         ),
                       ),
-                      title: Text(c['title'] ?? '', style: const TextStyle(fontWeight: FontWeight.w600)),
-                      subtitle: Text(c['status'] == 'published' ? 'منشور' : c['status'] == 'draft' ? 'مسودة' : c['status'] ?? ''),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text('${c['total_students'] ?? 0}', style: const TextStyle(color: Colors.grey)),
-                          const SizedBox(width: 8),
-                          const Icon(Icons.chevron_left),
-                        ],
+                    )
+                  else
+                    ..._courses.map((c) => Card(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      child: ListTile(
+                        leading: Container(
+                          width: 50, height: 50,
+                          decoration: BoxDecoration(
+                            color: c['status'] == 'published' ? Colors.green.shade50 : Colors.orange.shade50,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(
+                            c['status'] == 'published' ? Icons.check_circle : Icons.edit,
+                            color: c['status'] == 'published' ? Colors.green : Colors.orange,
+                          ),
+                        ),
+                        title: Text(c['title'] ?? '', style: const TextStyle(fontWeight: FontWeight.w600)),
+                        subtitle: Text(c['status'] == 'published' ? 'منشور' : c['status'] == 'draft' ? 'مسودة' : c['status'] ?? ''),
+                        trailing: PopupMenuButton<String>(
+                          onSelected: (val) {
+                            if (val == 'edit') {
+                              Navigator.push(context, MaterialPageRoute(builder: (_) => CreateCoursePage(editCourseId: c['id']))).then((_) => _loadData());
+                            } else if (val == 'content') {
+                              Navigator.push(context, MaterialPageRoute(builder: (_) => ManageLessonsPage(courseId: c['id'])));
+                            }
+                          },
+                          itemBuilder: (context) => [
+                            const PopupMenuItem(value: 'content', child: Text('إدارة المحتوى والدروس')),
+                            const PopupMenuItem(value: 'edit', child: Text('تعديل الكورس')),
+                          ],
+                        ),
+                        onTap: () {
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => ManageLessonsPage(courseId: c['id'])));
+                        },
                       ),
-                      onTap: () {},
-                    ),
-                  )),
+                    )),
                 ],
               ),
             ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {},
+        onPressed: () {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateCoursePage()));
+        },
         icon: const Icon(Icons.add),
         label: const Text('كورس جديد'),
       ),

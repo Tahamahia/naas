@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/api/api_client.dart';
+import '../widgets/lesson_upload_dialog.dart';
 
 class ManageLessonsPage extends StatefulWidget {
   final String courseId;
@@ -62,38 +63,83 @@ class _ManageLessonsPageState extends State<ManageLessonsPage> {
   }
 
   Future<void> _addLesson(String sectionId) async {
-    final titleCtrl = TextEditingController();
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => LessonUploadDialog(
+        courseId: widget.courseId,
+        sectionId: sectionId,
+      ),
+    );
+    if (result == true) {
+      _loadCourse();
+    }
+  }
+
+  Future<void> _renameSection(String sectionId, String currentTitle) async {
+    final titleCtrl = TextEditingController(text: currentTitle);
     final result = await showDialog<String>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('إضافة درس جديد'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: titleCtrl,
-              decoration: const InputDecoration(labelText: 'عنوان الدرس'),
-            ),
-            const SizedBox(height: 12),
-            const Text('سيتم تعيين النوع كفيديو افتراضياً'),
-          ],
+        title: const Text('إعادة تسمية القسم'),
+        content: TextField(
+          controller: titleCtrl,
+          decoration: const InputDecoration(labelText: 'اسم القسم'),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
-          ElevatedButton(onPressed: () => Navigator.pop(context, titleCtrl.text), child: const Text('إضافة')),
+          ElevatedButton(onPressed: () => Navigator.pop(context, titleCtrl.text), child: const Text('حفظ')),
         ],
       ),
     );
-    if (result != null && result.isNotEmpty) {
+    if (result != null && result.isNotEmpty && result != currentTitle) {
       try {
-        await _api.post('/courses/${widget.courseId}/sections/$sectionId/lessons', data: {
-          'title': result,
-          'type': 'video',
-          'sort_order': 0,
-        });
+        await _api.put('/courses/sections/$sectionId', data: {'title': result});
         _loadCourse();
       } catch (_) {}
     }
+  }
+
+  Future<void> _deleteSection(String sectionId) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('حذف القسم'),
+        content: const Text('هل أنت متأكد من حذف هذا القسم وجميع دروسه؟'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('إلغاء')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('حذف'),
+          ),
+        ],
+      ),
+    );
+    if (confirm == true) {
+      try {
+        await _api.delete('/courses/sections/$sectionId');
+        _loadCourse();
+      } catch (_) {}
+    }
+  }
+
+  Future<void> _onReorderSections(int oldIndex, int newIndex) async {
+    if (newIndex > oldIndex) newIndex -= 1;
+    setState(() {
+      final item = _sections.removeAt(oldIndex);
+      _sections.insert(newIndex, item);
+    });
+
+    final List<Map<String, dynamic>> payload = [];
+    for (int i = 0; i < _sections.length; i++) {
+      _sections[i]['sort_order'] = i;
+      payload.add({'id': _sections[i]['id'], 'sort_order': i});
+    }
+
+    try {
+      await _api.put('/courses/${widget.courseId}/sections/reorder', data: {'sections': payload});
+    } catch (_) {}
   }
 
   @override
@@ -127,7 +173,7 @@ class _ManageLessonsPageState extends State<ManageLessonsPage> {
               : ReorderableListView.builder(
                   padding: const EdgeInsets.all(16),
                   itemCount: _sections.length,
-                  onReorder: (oldI, newI) {},
+                  onReorder: _onReorderSections,
                   itemBuilder: (_, i) {
                     final section = _sections[i];
                     final lessons = section['lessons'] as List? ?? [];
@@ -135,7 +181,19 @@ class _ManageLessonsPageState extends State<ManageLessonsPage> {
                       key: ValueKey(section['id']),
                       margin: const EdgeInsets.only(bottom: 12),
                       child: ExpansionTile(
-                        title: Text(section['title'] ?? '', style: const TextStyle(fontWeight: FontWeight.w600)),
+                        title: Row(
+                          children: [
+                            Expanded(child: Text(section['title'] ?? '', style: const TextStyle(fontWeight: FontWeight.w600))),
+                            IconButton(
+                              icon: const Icon(Icons.edit, size: 18),
+                              onPressed: () => _renameSection(section['id'], section['title'] ?? ''),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete, size: 18, color: Colors.red),
+                              onPressed: () => _deleteSection(section['id']),
+                            ),
+                          ],
+                        ),
                         subtitle: Text('${lessons.length} درس'),
                         children: [
                           ...lessons.map((lesson) => ListTile(
@@ -157,6 +215,8 @@ class _ManageLessonsPageState extends State<ManageLessonsPage> {
                                 if (v == 'delete') {
                                   await _api.delete('/courses/lessons/${lesson['id']}');
                                   _loadCourse();
+                                } else if (v == 'edit') {
+                                  // Todo: Show edit dialog
                                 }
                               },
                             ),

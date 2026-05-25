@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/api_constants.dart';
 
 class ApiClient {
@@ -7,7 +7,6 @@ class ApiClient {
   factory ApiClient() => _instance;
 
   late Dio _dio;
-  final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
   ApiClient._internal() {
     _dio = Dio(BaseOptions(
@@ -17,20 +16,29 @@ class ApiClient {
       headers: {'Content-Type': 'application/json'},
     ));
 
-    _dio.interceptors.add(AuthInterceptor(_dio, _storage));
+    _dio.interceptors.add(AuthInterceptor(_dio));
   }
 
-  Future<String?> getToken() => _storage.read(key: 'access_token');
-  Future<String?> getRefreshToken() => _storage.read(key: 'refresh_token');
+  Future<String?> getToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('access_token');
+  }
+
+  Future<String?> getRefreshToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('refresh_token');
+  }
 
   Future<void> setTokens(String access, String refresh) async {
-    await _storage.write(key: 'access_token', value: access);
-    await _storage.write(key: 'refresh_token', value: refresh);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('access_token', access);
+    await prefs.setString('refresh_token', refresh);
   }
 
   Future<void> clearTokens() async {
-    await _storage.delete(key: 'access_token');
-    await _storage.delete(key: 'refresh_token');
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('access_token');
+    await prefs.remove('refresh_token');
   }
 
   Future<Response> get(String path, {Map<String, dynamic>? queryParams}) =>
@@ -48,13 +56,13 @@ class ApiClient {
 
 class AuthInterceptor extends Interceptor {
   final Dio _dio;
-  final FlutterSecureStorage _storage;
 
-  AuthInterceptor(this._dio, this._storage);
+  AuthInterceptor(this._dio);
 
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) async {
-    final token = await _storage.read(key: 'access_token');
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('access_token');
     if (token != null) {
       options.headers['Authorization'] = 'Bearer $token';
     }
@@ -64,7 +72,8 @@ class AuthInterceptor extends Interceptor {
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
     if (err.response?.statusCode == 401) {
-      final refreshToken = await _storage.read(key: 'refresh_token');
+      final prefs = await SharedPreferences.getInstance();
+      final refreshToken = prefs.getString('refresh_token');
       if (refreshToken != null) {
         try {
           final response = await Dio().post(
@@ -75,8 +84,8 @@ class AuthInterceptor extends Interceptor {
           if (response.data['success'] == true) {
             final newAccess = response.data['data']['accessToken'];
             final newRefresh = response.data['data']['refreshToken'];
-            await _storage.write(key: 'access_token', value: newAccess);
-            await _storage.write(key: 'refresh_token', value: newRefresh);
+            await prefs.setString('access_token', newAccess);
+            await prefs.setString('refresh_token', newRefresh);
 
             err.requestOptions.headers['Authorization'] = 'Bearer $newAccess';
             final retryResponse = await _dio.fetch(err.requestOptions);
@@ -84,7 +93,8 @@ class AuthInterceptor extends Interceptor {
             return;
           }
         } catch (_) {
-          await _storage.deleteAll();
+          await prefs.remove('access_token');
+          await prefs.remove('refresh_token');
         }
       }
     }

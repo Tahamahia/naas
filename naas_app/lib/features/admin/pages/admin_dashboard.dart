@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../core/api/api_client.dart';
+import 'admin_users_page.dart';
+import 'admin_withdrawals_page.dart';
+import 'admin_refunds_page.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -78,21 +81,27 @@ class _AdminDashboardState extends State<AdminDashboard> {
                           leading: const Icon(Icons.person_add, color: Colors.orange),
                           title: const Text('طلبات أساتذة معلقة'),
                           trailing: Chip(label: Text('${_stats!['teachers']?['pending'] ?? 0}')),
-                          onTap: () {},
+                          onTap: () {
+                            Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminUsersPage()));
+                          },
                         ),
                         const Divider(height: 1),
                         ListTile(
                           leading: const Icon(Icons.money_off, color: Colors.red),
                           title: const Text('طلبات سحب معلقة'),
                           trailing: Chip(label: Text('${_stats!['pending_withdrawals'] ?? 0}')),
-                          onTap: () {},
+                          onTap: () {
+                            Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminWithdrawalsPage()));
+                          },
                         ),
                         const Divider(height: 1),
                         ListTile(
                           leading: const Icon(Icons.replay, color: Colors.blue),
                           title: const Text('طلبات استرجاع'),
                           trailing: Chip(label: Text('${_stats!['pending_refunds'] ?? 0}')),
-                          onTap: () {},
+                          onTap: () {
+                            Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminRefundsPage()));
+                          },
                         ),
                         const Divider(height: 1),
                         ListTile(

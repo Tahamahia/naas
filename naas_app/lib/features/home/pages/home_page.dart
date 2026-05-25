@@ -5,6 +5,12 @@ import '../../../core/theme/app_theme.dart';
 import '../../../models/course_model.dart';
 import '../../../models/user_model.dart';
 import '../../auth/bloc/auth_bloc.dart';
+import '../../search/pages/search_page.dart';
+import '../../course_detail/pages/course_detail_page.dart';
+import '../../teacher_dashboard/pages/teacher_dashboard.dart';
+import '../../admin/pages/admin_dashboard.dart';
+import '../../admin/pages/admin_users_page.dart';
+import '../../../core/utils/ui_helpers.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -68,7 +74,7 @@ class _HomePageState extends State<HomePage> {
         actions: [
           IconButton(
             icon: Badge(child: const Icon(Icons.notifications_outlined)),
-            onPressed: () {},
+            onPressed: () => showComingSoon(context),
           ),
           if (user != null)
             Padding(
@@ -88,33 +94,50 @@ class _HomePageState extends State<HomePage> {
             : ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  // Welcome card
+                  // Welcome card (Modern Gradient Hero)
                   if (user != null)
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('مرحبا بك، ${user.fullName}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                                  const SizedBox(height: 4),
-                                  Text('الرصيد: ${user.walletBalance.toStringAsFixed(2)} د.ل',
-                                    style: TextStyle(color: Colors.grey.shade600)),
-                                ],
-                              ),
-                            ),
-                            Icon(Icons.account_balance_wallet, color: AppTheme.primaryColor, size: 40),
-                          ],
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF4F46E5), Color(0xFF06B6D4)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
                         ),
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: [
+                          BoxShadow(color: const Color(0xFF4F46E5).withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 10)),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('مرحباً بك، ${user.fullName}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
+                                const SizedBox(height: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(12)),
+                                  child: Text('الرصيد: ${user.walletBalance.toStringAsFixed(2)} د.ل',
+                                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const CircleAvatar(
+                            radius: 24,
+                            backgroundColor: Colors.white,
+                            child: Icon(Icons.account_balance_wallet, color: Color(0xFF4F46E5), size: 28),
+                          ),
+                        ],
                       ),
                     ),
                   const SizedBox(height: 16),
 
                   // Categories
-                  if (_categories.isNotEmpty) ...[
+                  if (user?.isTeacher != true && user?.isAdmin != true && _categories.isNotEmpty) ...[
                     const Text('الأقسام', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 8),
                     SizedBox(
@@ -128,7 +151,9 @@ class _HomePageState extends State<HomePage> {
                           return ActionChip(
                             label: Text(cat['name'] ?? ''),
                             avatar: cat['icon'] != null ? Icon(Icons.category, size: 18) : null,
-                            onPressed: () {},
+                            onPressed: () {
+                              Navigator.push(context, MaterialPageRoute(builder: (_) => SearchPage(initialCategoryId: cat['id'])));
+                            },
                           );
                         },
                       ),
@@ -137,11 +162,12 @@ class _HomePageState extends State<HomePage> {
                   ],
 
                   // Most popular courses
-                  const Text('الأكثر شهرة', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  _courses.isEmpty
-                      ? const Center(child: Text('لا توجد كورسات بعد'))
-                      : SizedBox(
+                  if (user?.isTeacher != true && user?.isAdmin != true) ...[
+                    const Text('الأكثر شهرة', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    _courses.isEmpty
+                        ? const Center(child: Text('لا توجد كورسات بعد'))
+                        : SizedBox(
                           height: 240,
                           child: ListView.separated(
                             scrollDirection: Axis.horizontal,
@@ -150,6 +176,7 @@ class _HomePageState extends State<HomePage> {
                             itemBuilder: (_, i) => _CourseCard(course: _courses[i]),
                           ),
                         ),
+                  ],
 
                   // Quick actions for teacher/admin
                   if (user != null && user.isTeacher) ..._teacherActions(user),
@@ -167,11 +194,17 @@ class _HomePageState extends State<HomePage> {
       const SizedBox(height: 8),
       Row(
         children: [
-          _ActionCard(icon: Icons.video_library, label: 'كورساتي', color: Colors.blue, onTap: () {}),
+          _ActionCard(icon: Icons.dashboard, label: 'لوحة التحكم', color: Colors.blue, onTap: () {
+            Navigator.push(context, MaterialPageRoute(builder: (_) => const TeacherDashboard()));
+          }),
           const SizedBox(width: 12),
-          _ActionCard(icon: Icons.monetization_on, label: 'الأرباح', color: Colors.green, onTap: () {}),
+          _ActionCard(icon: Icons.monetization_on, label: 'الأرباح', color: Colors.green, onTap: () {
+            Navigator.push(context, MaterialPageRoute(builder: (_) => const TeacherDashboard()));
+          }),
           const SizedBox(width: 12),
-          _ActionCard(icon: Icons.people, label: 'الطلاب', color: Colors.orange, onTap: () {}),
+          _ActionCard(icon: Icons.people, label: 'الطلاب', color: Colors.orange, onTap: () {
+            Navigator.push(context, MaterialPageRoute(builder: (_) => const TeacherDashboard()));
+          }),
         ],
       ),
     ];
@@ -184,11 +217,17 @@ class _HomePageState extends State<HomePage> {
       const SizedBox(height: 8),
       Row(
         children: [
-          _ActionCard(icon: Icons.dashboard, label: 'لوحة التحكم', color: Colors.purple, onTap: () {}),
+          _ActionCard(icon: Icons.dashboard, label: 'لوحة التحكم', color: Colors.purple, onTap: () {
+            Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminDashboard()));
+          }),
           const SizedBox(width: 12),
-          _ActionCard(icon: Icons.people, label: 'المستخدمين', color: Colors.teal, onTap: () {}),
+          _ActionCard(icon: Icons.people, label: 'المستخدمين', color: Colors.teal, onTap: () {
+            Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminUsersPage()));
+          }),
           const SizedBox(width: 12),
-          _ActionCard(icon: Icons.school, label: 'الأساتذة', color: Colors.indigo, onTap: () {}),
+          _ActionCard(icon: Icons.school, label: 'الأساتذة', color: Colors.indigo, onTap: () {
+            Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminUsersPage()));
+          }),
         ],
       ),
     ];
@@ -203,26 +242,36 @@ class _CourseCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       clipBehavior: Clip.antiAlias,
-      child: SizedBox(
+      child: InkWell(
+        onTap: () {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => CourseDetailPage(courseId: course.id)));
+        },
+        child: SizedBox(
         width: 180,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              height: 100,
+              height: 120,
               width: double.infinity,
-              color: Colors.grey.shade200,
-              child: course.thumbnailUrl != null
-                  ? Image.network(course.thumbnailUrl!, fit: BoxFit.cover)
-                  : const Center(child: Icon(Icons.school, size: 40, color: Colors.grey)),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade200,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                image: course.thumbnailUrl != null
+                    ? DecorationImage(image: NetworkImage(course.thumbnailUrl!), fit: BoxFit.cover)
+                    : null,
+              ),
+              child: course.thumbnailUrl == null
+                  ? const Center(child: Icon(Icons.school, size: 40, color: Colors.grey))
+                  : null,
             ),
             Padding(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(course.title, maxLines: 2, overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                   const SizedBox(height: 4),
                   if (course.teacherName != null)
                     Text(course.teacherName!, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
@@ -243,6 +292,7 @@ class _CourseCard extends StatelessWidget {
               ),
             ),
           ],
+        ),
         ),
       ),
     );

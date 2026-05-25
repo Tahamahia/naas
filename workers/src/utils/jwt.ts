@@ -1,4 +1,18 @@
-import { sign, verify } from 'jsonwebtoken';
+// Cloudflare Workers compatible JWT using jose library
+import { SignJWT, jwtVerify } from 'jose';
+
+const getSecretKey = () => {
+  const secret = typeof JWT_SECRET !== 'undefined' ? JWT_SECRET : 'naas-secret-key';
+  return new TextEncoder().encode(secret);
+};
+
+const getRefreshKey = () => {
+  const secret = typeof REFRESH_SECRET !== 'undefined' ? REFRESH_SECRET : 'naas-refresh-secret';
+  return new TextEncoder().encode(secret);
+};
+
+declare const JWT_SECRET: string;
+declare const REFRESH_SECRET: string;
 
 export interface JWTPayload {
   userId: string;
@@ -6,25 +20,28 @@ export interface JWTPayload {
   role: 'super_admin' | 'admin' | 'teacher' | 'student';
 }
 
-function getSecret(): string {
-  return typeof JWT_SECRET !== 'undefined' ? JWT_SECRET : 'naas-secret-key-change-in-production';
+export async function generateAccessToken(payload: JWTPayload): Promise<string> {
+  return new SignJWT({ ...payload })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('24h')
+    .sign(getSecretKey());
 }
 
-declare const JWT_SECRET: string;
-declare const REFRESH_SECRET: string;
-
-export function generateAccessToken(payload: JWTPayload): string {
-  return sign(payload, getSecret(), { expiresIn: '24h' });
+export async function generateRefreshToken(payload: JWTPayload): Promise<string> {
+  return new SignJWT({ ...payload })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('30d')
+    .sign(getRefreshKey());
 }
 
-export function generateRefreshToken(payload: JWTPayload): string {
-  return sign(payload, getSecret() + '-refresh', { expiresIn: '30d' });
+export async function verifyAccessToken(token: string): Promise<JWTPayload> {
+  const { payload } = await jwtVerify(token, getSecretKey());
+  return payload as unknown as JWTPayload;
 }
 
-export function verifyAccessToken(token: string): JWTPayload {
-  return verify(token, getSecret()) as JWTPayload;
-}
-
-export function verifyRefreshToken(token: string): JWTPayload {
-  return verify(token, getSecret() + '-refresh') as JWTPayload;
+export async function verifyRefreshToken(token: string): Promise<JWTPayload> {
+  const { payload } = await jwtVerify(token, getRefreshKey());
+  return payload as unknown as JWTPayload;
 }

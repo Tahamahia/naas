@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/utils/ui_helpers.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -36,7 +37,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   title: const Text('اللغة'),
                   subtitle: const Text('العربية'),
                   trailing: const Icon(Icons.chevron_left),
-                  onTap: () {},
+                  onTap: () => showComingSoon(context),
                 ),
                 const Divider(height: 1),
                 ListTile(
@@ -44,7 +45,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   title: const Text('الإشعارات'),
                   subtitle: const Text('إدارة إشعارات التطبيق'),
                   trailing: const Icon(Icons.chevron_left),
-                  onTap: () {},
+                  onTap: () => showComingSoon(context),
                 ),
               ],
             ),
@@ -58,21 +59,21 @@ class _SettingsPageState extends State<SettingsPage> {
                   title: const Text('حول التطبيق'),
                   subtitle: const Text('ناس — منصة تعليمية ليبية'),
                   trailing: const Icon(Icons.chevron_left),
-                  onTap: () {},
+                  onTap: () => showComingSoon(context),
                 ),
                 const Divider(height: 1),
                 ListTile(
                   leading: const Icon(Icons.description_outlined),
                   title: const Text('الشروط و الأحكام'),
                   trailing: const Icon(Icons.chevron_left),
-                  onTap: () {},
+                  onTap: () => showComingSoon(context),
                 ),
                 const Divider(height: 1),
                 ListTile(
                   leading: const Icon(Icons.privacy_tip_outlined),
                   title: const Text('سياسة الخصوصية'),
                   trailing: const Icon(Icons.chevron_left),
-                  onTap: () {},
+                  onTap: () => showComingSoon(context),
                 ),
               ],
             ),
@@ -82,7 +83,7 @@ class _SettingsPageState extends State<SettingsPage> {
             child: ListTile(
               leading: const Icon(Icons.delete_outline, color: Colors.red),
               title: const Text('حذف الحساب', style: TextStyle(color: Colors.red)),
-              onTap: () {},
+              onTap: () => showComingSoon(context),
             ),
           ),
           const SizedBox(height: 24),

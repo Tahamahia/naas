@@ -110,7 +110,7 @@ CREATE TABLE IF NOT EXISTS lessons (
   type TEXT NOT NULL DEFAULT 'video' CHECK(type IN ('video', 'pdf', 'quiz', 'live', 'article')),
   video_url TEXT,
   video_duration INTEGER,
-  video_status TEXT DEFAULT 'pending' CHECK(video_status IN ('uploading', 'processing', 'ready', 'failed')),
+  video_status TEXT DEFAULT 'pending' CHECK(video_status IN ('pending', 'uploading', 'processing', 'ready', 'failed')),
   pdf_url TEXT,
   pdf_name TEXT,
   article_content TEXT,

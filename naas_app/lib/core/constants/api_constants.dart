@@ -1,6 +1,6 @@
 class ApiConstants {
   // Change this to your Cloudflare Workers URL
-  static const String baseUrl = 'http://localhost:8787/api';
+  static const String baseUrl = 'https://naas-api.tahamax028.workers.dev/api';
 
   static const String login = '$baseUrl/auth/login';
   static const String register = '$baseUrl/auth/register';

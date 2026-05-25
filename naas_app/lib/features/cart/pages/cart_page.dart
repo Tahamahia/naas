@@ -86,7 +86,9 @@ class _CartPageState extends State<CartPage> {
                       const SizedBox(height: 16),
                       Text('السلة فارغة', style: TextStyle(fontSize: 18, color: Colors.grey.shade500)),
                       const SizedBox(height: 8),
-                      TextButton(onPressed: () {}, child: const Text('تصفح الكورسات')),
+                      TextButton(onPressed: () {
+                        Navigator.popUntil(context, (route) => route.isFirst);
+                      }, child: const Text('تصفح الكورسات')),
                     ],
                   ),
                 )

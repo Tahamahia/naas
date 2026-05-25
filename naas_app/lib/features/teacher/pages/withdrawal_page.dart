@@ -45,9 +45,21 @@ class _WithdrawalPageState extends State<WithdrawalPage> {
 
   Future<void> _requestWithdrawal() async {
     if (_amountCtrl.text.isEmpty) return;
+    
+    final amount = double.tryParse(_amountCtrl.text);
+    if (amount == null || amount <= 0) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: const Text('الرجاء إدخال مبلغ صحيح'),
+          backgroundColor: AppTheme.errorColor,
+        ));
+      }
+      return;
+    }
+
     setState(() => _submitting = true);
     try {
-      final res = await _api.post('/withdrawals', data: {'amount': double.parse(_amountCtrl.text)});
+      final res = await _api.post('/withdrawals', data: {'amount': amount});
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(res.data['message'] ?? 'تم إرسال الطلب'),
@@ -55,7 +67,14 @@ class _WithdrawalPageState extends State<WithdrawalPage> {
         ));
         if (res.data['success'] == true) { _amountCtrl.clear(); _loadData(); }
       }
-    } catch (_) {}
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: const Text('حدث خطأ أثناء الإرسال'),
+          backgroundColor: AppTheme.errorColor,
+        ));
+      }
+    }
     if (mounted) setState(() => _submitting = false);
   }
 

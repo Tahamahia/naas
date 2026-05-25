@@ -10,9 +10,8 @@
     "types": "wrangler types"
   },
   "dependencies": {
-    "bcryptjs": "^2.4.3",
     "hono": "^4.6.0",
-    "jsonwebtoken": "^9.0.2",
+    "jose": "^6.2.3",
     "zod": "^3.23.0"
   },
   "devDependencies": {

@@ -158,7 +158,9 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
                               const Icon(Icons.play_circle_fill, color: AppTheme.primaryColor, size: 28),
                             if (!isActive)
                               TextButton(
-                                onPressed: () {},
+                                onPressed: () {
+                                  Navigator.popUntil(context, (route) => route.isFirst);
+                                },
                                 child: const Text('تجديد', style: TextStyle(fontSize: 12)),
                               ),
                           ],

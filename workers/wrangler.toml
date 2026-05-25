@@ -20,14 +20,14 @@ binding = "CACHE"
 id = "059af5b8a394426297574fea214874c1"
 preview_id = "059af5b8a394426297574fea214874c1"
 
-# Durable Objects for wallet
-[[durable_objects.bindings]]
-name = "WALLET"
-class_name = "WalletDO"
+# Durable Objects for wallet (requires paid plan — can be added later)
+# [[durable_objects.bindings]]
+# name = "WALLET"
+# class_name = "WalletDO"
 
-[[migrations]]
-tag = "v1"
-new_classes = ["WalletDO"]
+# [[migrations]]
+# tag = "v1"
+# new_sqlite_classes = ["WalletDO"]
 
 # Cron job — daily at midnight
 [triggers]
@@ -37,6 +37,6 @@ crons = ["0 0 * * *"]
 [vars]
 JWT_SECRET = "naas-jwt-secret-prod"
 REFRESH_SECRET = "naas-refresh-secret-prod"
-BUNNY_API_KEY = ""
-BUNNY_LIBRARY_ID = ""
-BUNNY_CDN_HOSTNAME = ""
+BUNNY_STREAM_LIBRARY_ID = "669220"
+BUNNY_STREAM_API_KEY = "5825a918-9333-46a1-845cefebe071-37ab-475c"
+BUNNY_CDN_HOSTNAME = "vz-1e2ae7f8-145.b-cdn.net"
