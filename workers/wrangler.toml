@@ -1,0 +1,42 @@
+name = "naas-api"
+main = "src/index.ts"
+compatibility_date = "2024-09-01"
+compatibility_flags = ["nodejs_compat"]
+
+# D1 Database
+[[d1_databases]]
+binding = "DB"
+database_name = "naas-db"
+database_id = "ebaa120d-a462-4dea-8db4-565867375540"
+
+# R2 Storage
+[[r2_buckets]]
+binding = "ASSETS"
+bucket_name = "naas-assets"
+
+# KV for cache
+[[kv_namespaces]]
+binding = "CACHE"
+id = "059af5b8a394426297574fea214874c1"
+preview_id = "059af5b8a394426297574fea214874c1"
+
+# Durable Objects for wallet
+[[durable_objects.bindings]]
+name = "WALLET"
+class_name = "WalletDO"
+
+[[migrations]]
+tag = "v1"
+new_classes = ["WalletDO"]
+
+# Cron job — daily at midnight
+[triggers]
+crons = ["0 0 * * *"]
+
+# Environment variables
+[vars]
+JWT_SECRET = "naas-jwt-secret-prod"
+REFRESH_SECRET = "naas-refresh-secret-prod"
+BUNNY_API_KEY = ""
+BUNNY_LIBRARY_ID = ""
+BUNNY_CDN_HOSTNAME = ""

@@ -1,0 +1,33 @@
+# Node
+node_modules/
+dist/
+
+# Flutter
+naas_app/.dart_tool/
+naas_app/.packages/
+naas_app/build/
+naas_app/.flutter-plugins
+naas_app/.flutter-plugins-dependencies
+naas_app/ios/Pods/
+naas_app/ios/.symlinks/
+naas_app/android/.gradle/
+naas_app/android/local.properties
+naas_app/.idea/
+
+# Env
+.env
+.env.*
+*.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Wrangler
+.wrangler/
