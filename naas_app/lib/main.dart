@@ -11,7 +11,6 @@ import 'features/subscriptions/pages/subscriptions_page.dart';
 import 'features/admin/pages/admin_dashboard.dart';
 import 'features/admin/pages/admin_users_page.dart';
 import 'features/teacher_dashboard/pages/teacher_dashboard.dart';
-import 'features/teacher/pages/manage_lessons_page.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
