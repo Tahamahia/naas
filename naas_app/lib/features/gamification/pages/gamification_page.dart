@@ -34,10 +34,15 @@ class _GamificationPageState extends State<GamificationPage> with SingleTickerPr
     try {
       final badgesRes = await _api.get('/gamification/badges');
       final myBadgesRes = await _api.get('/gamification/my-badges');
+      final leaderboardRes = await _api.get('/gamification/leaderboard');
       if (mounted) {
         setState(() {
           if (badgesRes.data['success'] == true) _badges = badgesRes.data['data'] as List;
           if (myBadgesRes.data['success'] == true) _myBadges = myBadgesRes.data['data'] as List;
+          if (leaderboardRes.data['success'] == true) {
+            _leaderboard.clear();
+            _leaderboard.addAll(leaderboardRes.data['data'] as List);
+          }
           _loading = false;
         });
       }

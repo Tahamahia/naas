@@ -28,6 +28,30 @@ class _CourseDetailView extends StatefulWidget {
 
 class _CourseDetailViewState extends State<_CourseDetailView> {
   final ApiClient _api = ApiClient();
+  List<dynamic> _reviews = [];
+  bool _reviewsLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadReviews();
+  }
+
+  Future<void> _loadReviews() async {
+    try {
+      final res = await _api.get('/reviews/${widget.courseId}');
+      if (res.data['success'] == true && mounted) {
+        setState(() {
+          _reviews = res.data['data'] as List? ?? [];
+          _reviewsLoading = false;
+        });
+      } else {
+        if (mounted) setState(() => _reviewsLoading = false);
+      }
+    } catch (_) {
+      if (mounted) setState(() => _reviewsLoading = false);
+    }
+  }
 
   Future<void> _addToCart(String courseId) async {
     try {
@@ -227,6 +251,11 @@ class _CourseDetailViewState extends State<_CourseDetailView> {
                         else
                           const Center(child: Text('لا توجد دروس بعد')),
 
+                        const SizedBox(height: 24),
+
+                        // قسم التقييمات
+                        _buildReviewsSection(course, isSubscribed),
+
                         const SizedBox(height: 100),
                       ],
                     ),
@@ -278,5 +307,215 @@ class _CourseDetailViewState extends State<_CourseDetailView> {
       case 'article': return Colors.teal;
       default: return Colors.grey;
     }
+  }
+
+  Widget _buildReviewsSection(dynamic course, bool isSubscribed) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Text('التقييمات', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Spacer(),
+            if (isSubscribed)
+              TextButton.icon(
+                onPressed: () => _showAddReviewDialog(course.id),
+                icon: const Icon(Icons.rate_review, size: 18),
+                label: const Text('أضف تقييم'),
+              ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        // ملخص التقييمات
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Column(
+                  children: [
+                    Text(course.averageRating.toStringAsFixed(1),
+                      style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold)),
+                    Row(
+                      children: List.generate(5, (i) => Icon(
+                        i < course.averageRating.round() ? Icons.star : Icons.star_border,
+                        color: AppTheme.goldColor, size: 18,
+                      )),
+                    ),
+                    const SizedBox(height: 4),
+                    Text('${course.totalReviews} تقييم',
+                      style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        // قائمة التقييمات
+        if (_reviewsLoading)
+          const Center(child: Padding(
+            padding: EdgeInsets.all(16),
+            child: CircularProgressIndicator(),
+          ))
+        else if (_reviews.isEmpty)
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text('لا توجد تقييمات بعد', style: TextStyle(color: Colors.grey.shade500)),
+            ),
+          )
+        else
+          ...List.generate(_reviews.length, (i) {
+            final review = _reviews[i];
+            return Card(
+              margin: const EdgeInsets.only(bottom: 8),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 16,
+                          backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
+                          child: Text(
+                            (review['user_name'] ?? '?')[0],
+                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.primaryColor),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(review['user_name'] ?? 'مستخدم',
+                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                              Row(
+                                children: [
+                                  ...List.generate(5, (s) => Icon(
+                                    s < (review['rating'] ?? 0) ? Icons.star : Icons.star_border,
+                                    color: AppTheme.goldColor, size: 14,
+                                  )),
+                                  const SizedBox(width: 8),
+                                  Text(_formatReviewDate(review['created_at'] ?? ''),
+                                    style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (review['comment'] != null && review['comment'].toString().isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Text(review['comment'], style: TextStyle(color: Colors.grey.shade700, height: 1.4)),
+                    ],
+                  ],
+                ),
+              ),
+            );
+          }),
+      ],
+    );
+  }
+
+  String _formatReviewDate(String dateStr) {
+    try {
+      final date = DateTime.parse('${dateStr}Z');
+      final diff = DateTime.now().difference(date);
+      if (diff.inDays < 1) return 'اليوم';
+      if (diff.inDays < 7) return 'منذ ${diff.inDays} يوم';
+      if (diff.inDays < 30) return 'منذ ${(diff.inDays / 7).floor()} أسبوع';
+      return dateStr.substring(0, 10);
+    } catch (_) {
+      return '';
+    }
+  }
+
+  Future<void> _showAddReviewDialog(String courseId) async {
+    int selectedRating = 5;
+    final commentController = TextEditingController();
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('أضف تقييمك'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(5, (i) => IconButton(
+                  icon: Icon(
+                    i < selectedRating ? Icons.star : Icons.star_border,
+                    color: AppTheme.goldColor, size: 32,
+                  ),
+                  onPressed: () => setDialogState(() => selectedRating = i + 1),
+                )),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: commentController,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  hintText: 'اكتب تعليقك هنا (اختياري)...',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('إلغاء'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('إرسال'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (result != true || !mounted) return;
+
+    try {
+      final res = await _api.post('/reviews/$courseId', data: {
+        'rating': selectedRating,
+        'comment': commentController.text.trim(),
+      });
+      if (mounted) {
+        if (res.data['success'] == true) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('تم إرسال تقييمك بنجاح'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          _loadReviews();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(res.data['message'] ?? 'فشل إرسال التقييم'),
+              backgroundColor: AppTheme.errorColor,
+            ),
+          );
+        }
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('فشل إرسال التقييم'),
+            backgroundColor: AppTheme.errorColor,
+          ),
+        );
+      }
+    }
+    commentController.dispose();
   }
 }

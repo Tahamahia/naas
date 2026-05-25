@@ -9,6 +9,8 @@ import '../../../features/admin/pages/admin_dashboard.dart';
 import '../../../features/admin/pages/admin_users_page.dart';
 import '../../../features/admin/pages/admin_withdrawals_page.dart';
 import '../../../features/settings/pages/settings_page.dart';
+import '../../../features/subscriptions/pages/subscriptions_page.dart';
+import '../../../features/notifications/pages/notifications_page.dart';
 import '../../../core/utils/ui_helpers.dart';
 
 class ProfilePage extends StatelessWidget {
@@ -94,11 +96,15 @@ class ProfilePage extends StatelessWidget {
                   Navigator.push(context, MaterialPageRoute(builder: (_) => const WalletPage()));
                 }),
                 const Divider(height: 1),
-                _MenuItem(icon: Icons.subscriptions, title: 'اشتراكاتي', color: Colors.green, onTap: () => showComingSoon(context)),
+                _MenuItem(icon: Icons.subscriptions, title: 'اشتراكاتي', color: Colors.green, onTap: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => const SubscriptionsPage()));
+                }),
                 const Divider(height: 1),
                 _MenuItem(icon: Icons.favorite_border, title: 'المفضلة', color: Colors.red, onTap: () => showComingSoon(context)),
                 const Divider(height: 1),
-                _MenuItem(icon: Icons.notifications_outlined, title: 'الإشعارات', color: Colors.orange, onTap: () => showComingSoon(context)),
+                _MenuItem(icon: Icons.notifications_outlined, title: 'الإشعارات', color: Colors.orange, onTap: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsPage()));
+                }),
                 const Divider(height: 1),
                 _MenuItem(icon: Icons.download_outlined, title: 'الدروس المحملة', color: Colors.teal, onTap: () => showComingSoon(context)),
               ],

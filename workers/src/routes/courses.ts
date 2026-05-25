@@ -300,7 +300,19 @@ router.put('/sections/:id', authenticate, async (c) => {
 
 // PUT /api/courses/:id/sections/reorder
 router.put('/:id/sections/reorder', authenticate, async (c) => {
+  const user = c.get('user');
   const db = c.env.DB;
+  const { id } = c.req.param();
+
+  // Ownership check
+  const isAdmin = user.role === 'admin' || user.role === 'super_admin';
+  if (!isAdmin) {
+    const course = await db.prepare('SELECT teacher_id FROM courses WHERE id = ?').bind(id).first() as any;
+    if (!course) return c.json(formatResponse(false, null, 'Course not found'), 404);
+    const teacher = await db.prepare('SELECT id FROM teachers WHERE user_id = ?').bind(user.userId).first() as any;
+    if (!teacher || course.teacher_id !== teacher.id) return c.json(formatResponse(false, null, 'Forbidden'), 403);
+  }
+
   const { sections } = await c.req.json(); // [{ id, sort_order }]
   for (const s of sections) {
     await db.prepare('UPDATE sections SET sort_order = ? WHERE id = ?').bind(s.sort_order, s.id).run();
@@ -310,7 +322,23 @@ router.put('/:id/sections/reorder', authenticate, async (c) => {
 
 // PUT /api/sections/:sectionId/lessons/reorder
 router.put('/sections/:sectionId/lessons/reorder', authenticate, async (c) => {
+  const user = c.get('user');
   const db = c.env.DB;
+  const { sectionId } = c.req.param();
+
+  // Ownership check via section -> course -> teacher
+  const isAdmin = user.role === 'admin' || user.role === 'super_admin';
+  if (!isAdmin) {
+    const section = await db.prepare(
+      `SELECT c.teacher_id FROM sections s
+       JOIN courses c ON s.course_id = c.id
+       WHERE s.id = ?`
+    ).bind(sectionId).first() as any;
+    if (!section) return c.json(formatResponse(false, null, 'Section not found'), 404);
+    const teacher = await db.prepare('SELECT id FROM teachers WHERE user_id = ?').bind(user.userId).first() as any;
+    if (!teacher || section.teacher_id !== teacher.id) return c.json(formatResponse(false, null, 'Forbidden'), 403);
+  }
+
   const { lessons } = await c.req.json(); // [{ id, sort_order }]
   for (const l of lessons) {
     await db.prepare('UPDATE lessons SET sort_order = ? WHERE id = ?').bind(l.sort_order, l.id).run();

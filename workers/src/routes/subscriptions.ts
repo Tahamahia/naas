@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { formatResponse } from '../utils/helpers';
+import { formatResponse, generateId } from '../utils/helpers';
 import { authenticate } from '../middleware/auth';
 import type { Env } from '../index';
 
@@ -113,6 +113,15 @@ router.post('/:id/renew', authenticate, async (c) => {
 
   await db.prepare('UPDATE users SET wallet_balance = wallet_balance - ? WHERE id = ?')
     .bind(price, user.userId).run();
+
+  // Transaction log for renewal
+  const transId = generateId();
+  const balanceBefore = u.wallet_balance;
+  const balanceAfter = u.wallet_balance - price;
+  await db.prepare(
+    `INSERT INTO transactions (id, user_id, type, amount, balance_before, balance_after, description, reference_id, status, created_at)
+     VALUES (?, ?, 'purchase', ?, ?, ?, 'Course renewal', ?, 'completed', datetime('now'))`
+  ).bind(transId, user.userId, -price, balanceBefore, balanceAfter, id).run();
 
   return c.json(formatResponse(true, null, 'Subscription renewed'));
 });

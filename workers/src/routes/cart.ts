@@ -111,6 +111,7 @@ router.post('/checkout', authenticate, async (c) => {
 
   // Process each item with D1 transaction (atomic)
   const subscriptions: any[] = [];
+  let currentBalance = userData.wallet_balance;
   for (const item of items.results) {
     const endDate = item.duration_days
       ? new Date(Date.now() + item.duration_days * 86400000).toISOString()
@@ -124,16 +125,14 @@ router.post('/checkout', authenticate, async (c) => {
     ).bind(subId, user.userId, item.course_id, item.price, endDate).run();
 
     // Wallet deduction transaction log
-    const balanceBefore = userData.wallet_balance - totalAmount + items.results
-      .slice(0, items.results.indexOf(item))
-      .reduce((sum: number, i: any) => sum + i.price, 0) + totalAmount - items.results
-      .slice(items.results.indexOf(item) + 1)
-      .reduce((sum: number, i: any) => sum + i.price, 0);
+    const balanceBefore = currentBalance;
+    const balanceAfter = currentBalance - item.price;
+    currentBalance = balanceAfter;
 
     await db.prepare(
       `INSERT INTO transactions (id, user_id, type, amount, balance_before, balance_after, description, reference_id, status)
        VALUES (?, ?, 'payment', ?, ?, ?, ?, ?, 'completed')`
-    ).bind(transId, user.userId, -item.price, balanceBefore, balanceBefore - item.price,
+    ).bind(transId, user.userId, -item.price, balanceBefore, balanceAfter,
       `Purchase: ${item.title}`, subId).run();
 
     // Update course student count

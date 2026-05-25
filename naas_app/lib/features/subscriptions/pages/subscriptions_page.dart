@@ -158,9 +158,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
                               const Icon(Icons.play_circle_fill, color: AppTheme.primaryColor, size: 28),
                             if (!isActive)
                               TextButton(
-                                onPressed: () {
-                                  Navigator.popUntil(context, (route) => route.isFirst);
-                                },
+                                onPressed: () => _showRenewDialog(sub),
                                 child: const Text('تجديد', style: TextStyle(fontSize: 12)),
                               ),
                           ],
@@ -175,5 +173,58 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
         },
       ),
     );
+  }
+
+  Future<void> _showRenewDialog(SubscriptionModel sub) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('تجديد الاشتراك'),
+        content: Text('هل تريد تجديد اشتراكك في "${sub.courseTitle ?? ''}"؟'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('إلغاء'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('تجديد'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    try {
+      final res = await _api.post('/subscriptions/${sub.id}/renew');
+      if (mounted) {
+        if (res.data['success'] == true) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('تم تجديد الاشتراك بنجاح'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          _loadSubscriptions();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(res.data['message'] ?? 'فشل تجديد الاشتراك'),
+              backgroundColor: AppTheme.errorColor,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('فشل تجديد الاشتراك'),
+            backgroundColor: AppTheme.errorColor,
+          ),
+        );
+      }
+    }
   }
 }

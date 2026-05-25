@@ -25,6 +25,7 @@ class _HomePageState extends State<HomePage> {
   List<CourseModel> _courses = [];
   List<dynamic> _categories = [];
   bool _loading = true;
+  int _unreadCount = 0;
 
   @override
   void initState() {
@@ -36,6 +37,13 @@ class _HomePageState extends State<HomePage> {
     try {
       final coursesRes = await _api.get('/courses', queryParams: {'limit': '10', 'sort': 'students'});
       final catsRes = await _api.get('/categories');
+      // تحميل عدد الإشعارات غير المقروءة
+      try {
+        final notifRes = await _api.get('/notifications');
+        if (notifRes.data['success'] == true) {
+          _unreadCount = notifRes.data['data']['unread_count'] ?? 0;
+        }
+      } catch (_) {}
       if (mounted) {
         setState(() {
           if (coursesRes.data['success'] == true) {
@@ -74,7 +82,11 @@ class _HomePageState extends State<HomePage> {
         ),
         actions: [
           IconButton(
-            icon: Badge(child: const Icon(Icons.notifications_outlined)),
+            icon: Badge(
+              isLabelVisible: _unreadCount > 0,
+              label: _unreadCount > 0 ? Text('$_unreadCount', style: const TextStyle(fontSize: 10)) : null,
+              child: const Icon(Icons.notifications_outlined),
+            ),
             onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsPage())),
           ),
           if (user != null)

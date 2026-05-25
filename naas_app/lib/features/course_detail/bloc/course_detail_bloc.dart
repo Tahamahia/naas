@@ -21,6 +21,8 @@ class CourseDetailBloc extends Bloc<CourseDetailEvent, CourseDetailState> {
       if (res.data['success'] == true) {
         final course = CourseModel.fromJson(res.data['data']);
         emit(CourseDetailLoaded(course));
+        // تحقق تلقائي من الاشتراك بعد تحميل تفاصيل الكورس
+        add(CheckSubscription(event.courseId));
       } else {
         emit(CourseDetailError(res.data['message'] ?? 'Failed to load'));
       }

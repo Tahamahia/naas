@@ -16,17 +16,22 @@ router.get('/upcoming', authenticate, async (c) => {
     JOIN teachers t ON ls.teacher_id = t.id
     JOIN users u ON t.user_id = u.id
     WHERE ls.status = 'scheduled' AND ls.scheduled_at > datetime('now')`;
+  const params: any[] = [];
 
   if (user.role === 'teacher') {
     const teacher = await db.prepare('SELECT id FROM teachers WHERE user_id = ?').bind(user.userId).first() as any;
-    if (teacher) query += ` AND ls.teacher_id = '${teacher.id}'`;
+    if (teacher) {
+      query += ` AND ls.teacher_id = ?`;
+      params.push(teacher.id);
+    }
   } else if (user.role === 'student') {
     query += ` AND ls.course_id IN (SELECT course_id FROM subscriptions WHERE user_id = ? AND status = 'active')`;
+    params.push(user.userId);
   }
 
   query += ' ORDER BY ls.scheduled_at ASC';
-  const results = user.role === 'student'
-    ? await db.prepare(query).bind(user.userId).all()
+  const results = params.length > 0
+    ? await db.prepare(query).bind(...params).all()
     : await db.prepare(query).all();
 
   return c.json(formatResponse(true, results.results));

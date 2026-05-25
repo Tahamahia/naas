@@ -1,7 +1,8 @@
 import 'dart:async';
+import 'dart:ui_web' as ui_web;
+import 'package:web/web.dart' as web;
 import 'package:flutter/material.dart';
 import '../../../core/api/api_client.dart';
-import '../../../core/theme/app_theme.dart';
 import '../../../models/course_model.dart';
 
 class PlayerPage extends StatefulWidget {
@@ -14,14 +15,17 @@ class PlayerPage extends StatefulWidget {
 
 class _PlayerPageState extends State<PlayerPage> {
   final ApiClient _api = ApiClient();
-  bool _isPlaying = false;
+  final bool _isPlaying = false;
   int _progressSeconds = 0;
+  late String _viewId;
 
   Timer? _timer;
 
   @override
   void initState() {
     super.initState();
+    _viewId = 'video-player-${widget.lesson.id}';
+    _registerVideoView();
     _timer = Timer.periodic(const Duration(seconds: 30), (_) async {
       if (_isPlaying) {
         _progressSeconds += 30;
@@ -34,6 +38,41 @@ class _PlayerPageState extends State<PlayerPage> {
         } catch (_) {}
       }
     });
+  }
+
+  void _registerVideoView() {
+    final videoUrl = widget.lesson.videoUrl;
+    if (videoUrl == null || videoUrl.isEmpty) return;
+
+    ui_web.platformViewRegistry.registerViewFactory(
+      _viewId,
+      (int viewId) {
+        if (videoUrl.contains('.mp4') || videoUrl.contains('.m3u8') || videoUrl.contains('.webm')) {
+          // رابط فيديو مباشر - استخدم عنصر video HTML5
+          final videoElement = web.document.createElement('video') as web.HTMLVideoElement;
+          videoElement.src = videoUrl;
+          videoElement.controls = true;
+          videoElement.autoplay = true;
+          videoElement.style.width = '100%';
+          videoElement.style.height = '100%';
+          videoElement.style.backgroundColor = 'black';
+          videoElement.style.objectFit = 'contain';
+          videoElement.setAttribute('playsinline', 'true');
+          return videoElement;
+        } else {
+          // رابط بث (مثل Bunny CDN embed) - استخدم iframe
+          final iframe = web.document.createElement('iframe') as web.HTMLIFrameElement;
+          iframe.src = videoUrl;
+          iframe.style.width = '100%';
+          iframe.style.height = '100%';
+          iframe.style.border = 'none';
+          iframe.style.backgroundColor = 'black';
+          iframe.allow = 'accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture';
+          iframe.setAttribute('allowfullscreen', 'true');
+          return iframe;
+        }
+      },
+    );
   }
 
   @override
@@ -83,14 +122,6 @@ class _PlayerPageState extends State<PlayerPage> {
                     ],
                   ),
                 ),
-                const Icon(Icons.settings_outlined),
-                const SizedBox(width: 16),
-                IconButton(
-                  icon: Icon(_isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled, size: 48, color: AppTheme.primaryColor),
-                  onPressed: () => setState(() => _isPlaying = !_isPlaying),
-                ),
-                const SizedBox(width: 16),
-                const Icon(Icons.speed_outlined),
               ],
             ),
           ),
@@ -100,22 +131,24 @@ class _PlayerPageState extends State<PlayerPage> {
   }
 
   Widget _buildVideoPlayer(LessonModel lesson) {
+    if (lesson.videoUrl == null || lesson.videoUrl!.isEmpty) {
+      return Container(
+        color: Colors.black,
+        child: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.videocam_off, size: 80, color: Colors.white38),
+              SizedBox(height: 16),
+              Text('رابط الفيديو غير متوفر', style: TextStyle(color: Colors.white70, fontSize: 18)),
+            ],
+          ),
+        ),
+      );
+    }
     return Container(
       color: Colors.black,
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.play_circle_outline, size: 80, color: Colors.white.withValues(alpha: 0.7)),
-            const SizedBox(height: 16),
-            const Text('مشغل الفيديو', style: TextStyle(color: Colors.white70, fontSize: 18)),
-            if (lesson.videoUrl != null) ...[
-              const SizedBox(height: 8),
-              Text(lesson.videoUrl!, style: const TextStyle(color: Colors.white38, fontSize: 10), textAlign: TextAlign.center),
-            ],
-          ],
-        ),
-      ),
+      child: HtmlElementView(viewType: _viewId),
     );
   }
 
