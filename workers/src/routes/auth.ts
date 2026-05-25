@@ -56,7 +56,7 @@ router.post('/login', async (c) => {
   const db = c.env.DB;
 
   const user = await db.prepare(
-    'SELECT id, email, password_hash, full_name, role, status FROM users WHERE email = ?'
+    'SELECT id, email, password_hash, full_name, role, status, phone, avatar_url, wallet_balance, points, referral_code, lang FROM users WHERE email = ?'
   ).bind(email).first() as any;
 
   if (!user || user.status !== 'active') return c.json(formatResponse(false, null, 'Invalid email or password'), 401);
@@ -69,7 +69,11 @@ router.post('/login', async (c) => {
   const refreshToken = await generateRefreshToken(payload);
 
   return c.json(formatResponse(true, {
-    user: { id: user.id, email: user.email, full_name: user.full_name, role: user.role },
+    user: {
+      id: user.id, email: user.email, full_name: user.full_name, role: user.role,
+      phone: user.phone, avatar_url: user.avatar_url, wallet_balance: user.wallet_balance,
+      points: user.points, referral_code: user.referral_code, lang: user.lang, status: user.status,
+    },
     accessToken, refreshToken,
   }, 'Login successful'));
 });

@@ -54,6 +54,21 @@ router.get('/', async (c) => {
   return c.json(formatResponse(true, courses.results));
 });
 
+// GET /api/courses/teacher/mine — teacher's own courses
+router.get('/teacher/mine', authenticate, requireRoles('teacher'), async (c) => {
+  const user = c.get('user');
+  const db = c.env.DB;
+
+  const teacher = await db.prepare('SELECT id FROM teachers WHERE user_id = ?').bind(user.userId).first() as any;
+  if (!teacher) return c.json(formatResponse(false, null, 'Teacher profile not found'), 404);
+
+  const courses = await db.prepare(
+    `SELECT * FROM courses WHERE teacher_id = ? ORDER BY updated_at DESC`
+  ).bind(teacher.id!).all();
+
+  return c.json(formatResponse(true, courses.results));
+});
+
 // GET /api/courses/:id — course details
 router.get('/:id', async (c) => {
   const db = c.env.DB;
@@ -228,6 +243,20 @@ router.put('/lessons/:id', authenticate, async (c) => {
   const { id } = c.req.param();
   const body = await c.req.json();
 
+  // Ownership check: verify the lesson belongs to the current teacher
+  const isAdmin = user.role === 'admin' || user.role === 'super_admin';
+  if (!isAdmin) {
+    const lesson = await db.prepare(
+      `SELECT c.teacher_id FROM lessons l
+       JOIN sections s ON l.section_id = s.id
+       JOIN courses c ON s.course_id = c.id
+       WHERE l.id = ?`
+    ).bind(id).first() as any;
+    if (!lesson) return c.json(formatResponse(false, null, 'Lesson not found'), 404);
+    const teacher = await db.prepare('SELECT id FROM teachers WHERE user_id = ?').bind(user.userId).first() as any;
+    if (!teacher || lesson.teacher_id !== teacher.id) return c.json(formatResponse(false, null, 'Forbidden'), 403);
+  }
+
   await db.prepare(
     `UPDATE lessons SET
      title = COALESCE(?, title), type = COALESCE(?, type),
@@ -251,6 +280,20 @@ router.put('/sections/:id', authenticate, async (c) => {
   const db = c.env.DB;
   const { id } = c.req.param();
   const { title } = await c.req.json();
+
+  // Ownership check: verify the section belongs to the current teacher
+  const isAdmin = user.role === 'admin' || user.role === 'super_admin';
+  if (!isAdmin) {
+    const section = await db.prepare(
+      `SELECT c.teacher_id FROM sections s
+       JOIN courses c ON s.course_id = c.id
+       WHERE s.id = ?`
+    ).bind(id).first() as any;
+    if (!section) return c.json(formatResponse(false, null, 'Section not found'), 404);
+    const teacher = await db.prepare('SELECT id FROM teachers WHERE user_id = ?').bind(user.userId).first() as any;
+    if (!teacher || section.teacher_id !== teacher.id) return c.json(formatResponse(false, null, 'Forbidden'), 403);
+  }
+
   await db.prepare('UPDATE sections SET title = COALESCE(?, title) WHERE id = ?').bind(title || null, id).run();
   return c.json(formatResponse(true, null, 'Section updated'));
 });
@@ -286,6 +329,12 @@ router.post('/:courseId/sections/:sectionId/bunny-video', authenticate, async (c
   const course = await db.prepare('SELECT teacher_id FROM courses WHERE id = ?').bind(courseId).first() as any;
   if (!course) return c.json(formatResponse(false, null, 'Course not found'), 404);
 
+  // Ownership verification: only course owner or admin can upload videos
+  const teacher = await db.prepare('SELECT id FROM teachers WHERE user_id = ?').bind(user.userId).first() as any;
+  const isOwner = teacher && course.teacher_id === teacher.id;
+  const isAdmin = user.role === 'admin' || user.role === 'super_admin';
+  if (!isOwner && !isAdmin) return c.json(formatResponse(false, null, 'Forbidden'), 403);
+
   // 1. Create video in Bunny Stream
   const bunnyRes = await fetch(`https://video.bunnycdn.com/library/${env.BUNNY_STREAM_LIBRARY_ID}/videos`, {
     method: 'POST',
@@ -309,44 +358,93 @@ router.post('/:courseId/sections/:sectionId/bunny-video', authenticate, async (c
      VALUES (?, ?, ?, 'video', ?, 'uploading', 0)`
   ).bind(lessonId, sectionId, title || 'Untitled', bunnyData.guid).run();
 
-  // Return the guid and access key (temporarily) to the teacher so they can PUT the file from frontend
+  // Return upload info — only the verified course owner reaches this point
   return c.json(formatResponse(true, {
     lessonId,
     guid: bunnyData.guid,
     libraryId: env.BUNNY_STREAM_LIBRARY_ID,
-    uploadKey: env.BUNNY_STREAM_API_KEY // Note: in production use a scoped Edge Token
+    uploadUrl: `https://video.bunnycdn.com/library/${env.BUNNY_STREAM_LIBRARY_ID}/videos/${bunnyData.guid}`,
+    uploadKey: env.BUNNY_STREAM_API_KEY,
   }, 'Lesson created and ready for upload'), 201);
 });
 
 // DELETE /api/lessons/:id
 router.delete('/lessons/:id', authenticate, async (c) => {
+  const user = c.get('user');
   const db = c.env.DB;
   const { id } = c.req.param();
+
+  // Ownership check
+  const isAdmin = user.role === 'admin' || user.role === 'super_admin';
+  if (!isAdmin) {
+    const lesson = await db.prepare(
+      `SELECT c.teacher_id FROM lessons l
+       JOIN sections s ON l.section_id = s.id
+       JOIN courses c ON s.course_id = c.id
+       WHERE l.id = ?`
+    ).bind(id).first() as any;
+    if (!lesson) return c.json(formatResponse(false, null, 'Lesson not found'), 404);
+    const teacher = await db.prepare('SELECT id FROM teachers WHERE user_id = ?').bind(user.userId).first() as any;
+    if (!teacher || lesson.teacher_id !== teacher.id) return c.json(formatResponse(false, null, 'Forbidden'), 403);
+  }
+
   await db.prepare('DELETE FROM lessons WHERE id = ?').bind(id).run();
   return c.json(formatResponse(true, null, 'Lesson deleted'));
 });
 
 // DELETE /api/sections/:id
 router.delete('/sections/:id', authenticate, async (c) => {
+  const user = c.get('user');
   const db = c.env.DB;
   const { id } = c.req.param();
+
+  // Ownership check
+  const isAdmin = user.role === 'admin' || user.role === 'super_admin';
+  if (!isAdmin) {
+    const section = await db.prepare(
+      `SELECT c.teacher_id FROM sections s
+       JOIN courses c ON s.course_id = c.id
+       WHERE s.id = ?`
+    ).bind(id).first() as any;
+    if (!section) return c.json(formatResponse(false, null, 'Section not found'), 404);
+    const teacher = await db.prepare('SELECT id FROM teachers WHERE user_id = ?').bind(user.userId).first() as any;
+    if (!teacher || section.teacher_id !== teacher.id) return c.json(formatResponse(false, null, 'Forbidden'), 403);
+  }
+
+  await db.prepare('DELETE FROM lessons WHERE section_id = ?').bind(id).run();
   await db.prepare('DELETE FROM sections WHERE id = ?').bind(id).run();
   return c.json(formatResponse(true, null, 'Section deleted'));
 });
 
-// GET /api/courses/teacher/mine — teacher's own courses
-router.get('/teacher/mine', authenticate, requireRoles('teacher'), async (c) => {
+// DELETE /api/courses/:id — delete course
+router.delete('/:id', authenticate, async (c) => {
   const user = c.get('user');
   const db = c.env.DB;
+  const { id } = c.req.param();
+
+  const course = await db.prepare('SELECT teacher_id FROM courses WHERE id = ?').bind(id).first() as any;
+  if (!course) return c.json(formatResponse(false, null, 'Course not found'), 404);
 
   const teacher = await db.prepare('SELECT id FROM teachers WHERE user_id = ?').bind(user.userId).first() as any;
-  if (!teacher) return c.json(formatResponse(false, null, 'Teacher profile not found'), 404);
+  const isOwner = teacher && course.teacher_id === teacher.id;
+  const isAdmin = user.role === 'admin' || user.role === 'super_admin';
+  if (!isOwner && !isAdmin) return c.json(formatResponse(false, null, 'Forbidden'), 403);
 
-  const courses = await db.prepare(
-    `SELECT * FROM courses WHERE teacher_id = ? ORDER BY updated_at DESC`
-  ).bind(teacher.id!).all();
+  // Delete lessons for all sections of this course
+  const sections = await db.prepare('SELECT id FROM sections WHERE course_id = ?').bind(id).all();
+  const sectionIds = (sections.results as any[]).map(s => s.id);
+  if (sectionIds.length > 0) {
+    const placeholders = sectionIds.map(() => '?').join(',');
+    await db.prepare(`DELETE FROM lessons WHERE section_id IN (${placeholders})`).bind(...sectionIds).run();
+  }
 
-  return c.json(formatResponse(true, courses.results));
+  // Delete sections
+  await db.prepare('DELETE FROM sections WHERE course_id = ?').bind(id).run();
+
+  // Delete the course
+  await db.prepare('DELETE FROM courses WHERE id = ?').bind(id).run();
+
+  return c.json(formatResponse(true, null, 'Course deleted'));
 });
 
 export default router;

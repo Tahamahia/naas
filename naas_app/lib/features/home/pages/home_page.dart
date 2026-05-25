@@ -8,9 +8,10 @@ import '../../auth/bloc/auth_bloc.dart';
 import '../../search/pages/search_page.dart';
 import '../../course_detail/pages/course_detail_page.dart';
 import '../../teacher_dashboard/pages/teacher_dashboard.dart';
+import '../../teacher/pages/withdrawal_page.dart';
+import '../../notifications/pages/notifications_page.dart';
 import '../../admin/pages/admin_dashboard.dart';
 import '../../admin/pages/admin_users_page.dart';
-import '../../../core/utils/ui_helpers.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -74,7 +75,7 @@ class _HomePageState extends State<HomePage> {
         actions: [
           IconButton(
             icon: Badge(child: const Icon(Icons.notifications_outlined)),
-            onPressed: () => showComingSoon(context),
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsPage())),
           ),
           if (user != null)
             Padding(
@@ -199,7 +200,7 @@ class _HomePageState extends State<HomePage> {
           }),
           const SizedBox(width: 12),
           _ActionCard(icon: Icons.monetization_on, label: 'الأرباح', color: Colors.green, onTap: () {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => const TeacherDashboard()));
+            Navigator.push(context, MaterialPageRoute(builder: (_) => const WithdrawalPage()));
           }),
           const SizedBox(width: 12),
           _ActionCard(icon: Icons.people, label: 'الطلاب', color: Colors.orange, onTap: () {

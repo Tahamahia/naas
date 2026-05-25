@@ -4,6 +4,10 @@ import '../../../features/auth/bloc/auth_bloc.dart';
 import '../../../features/wallet/pages/wallet_page.dart';
 import '../../../features/teacher/pages/teacher_settings_page.dart';
 import '../../../features/teacher_dashboard/pages/teacher_dashboard.dart';
+import '../../../features/teacher/pages/teacher_application_page.dart';
+import '../../../features/admin/pages/admin_dashboard.dart';
+import '../../../features/admin/pages/admin_users_page.dart';
+import '../../../features/admin/pages/admin_withdrawals_page.dart';
 import '../../../features/settings/pages/settings_page.dart';
 import '../../../core/utils/ui_helpers.dart';
 
@@ -127,17 +131,41 @@ class ProfilePage extends StatelessWidget {
             Card(
               child: Column(
                 children: [
-                  _MenuItem(icon: Icons.dashboard, title: 'لوحة الإدارة', color: Colors.purple, onTap: () => showComingSoon(context)),
+                  _MenuItem(icon: Icons.dashboard, title: 'لوحة الإدارة', color: Colors.purple, onTap: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminDashboard()));
+                  }),
                   const Divider(height: 1),
-                  _MenuItem(icon: Icons.people, title: 'المستخدمين', color: Colors.teal, onTap: () => showComingSoon(context)),
+                  _MenuItem(icon: Icons.people, title: 'المستخدمين', color: Colors.teal, onTap: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminUsersPage()));
+                  }),
                   const Divider(height: 1),
-                  _MenuItem(icon: Icons.school, title: 'الأساتذة', color: Colors.indigo, onTap: () => showComingSoon(context)),
+                  // TODO: إضافة صفحة مخصصة للأساتذة
+                  _MenuItem(icon: Icons.school, title: 'الأساتذة', color: Colors.indigo, onTap: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminUsersPage()));
+                  }),
                   const Divider(height: 1),
+                  // TODO: إضافة صفحة العمولات
                   _MenuItem(icon: Icons.monetization_on, title: 'العمولات', color: Colors.green, onTap: () => showComingSoon(context)),
                   const Divider(height: 1),
-                  _MenuItem(icon: Icons.money_off, title: 'طلبات السحب', color: Colors.red, onTap: () => showComingSoon(context)),
+                  _MenuItem(icon: Icons.money_off, title: 'طلبات السحب', color: Colors.red, onTap: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminWithdrawalsPage()));
+                  }),
                   const Divider(height: 1),
+                  // TODO: إضافة صفحة البلاغات
                   _MenuItem(icon: Icons.flag, title: 'البلاغات', color: Colors.purple, onTap: () => showComingSoon(context)),
+                ],
+              ),
+            ),
+          const SizedBox(height: 8),
+
+          // Student section - Apply as teacher
+          if (user.role == 'student')
+            Card(
+              child: Column(
+                children: [
+                  _MenuItem(icon: Icons.school, title: 'التقديم كأستاذ', color: Colors.indigo, onTap: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const TeacherApplicationPage()));
+                  }),
                 ],
               ),
             ),

@@ -92,28 +92,6 @@ router.post('/:id/reject', authenticate, requireRoles('super_admin', 'admin'), a
   return c.json(formatResponse(true, null, 'Teacher rejected'));
 });
 
-// GET /api/teachers/:id — public teacher profile
-router.get('/:id', async (c) => {
-  const db = c.env.DB;
-  const { id } = c.req.param();
-
-  const teacher = await db.prepare(
-    `SELECT t.id, t.bio, t.qualification, t.photo_url, t.status,
-            u.full_name, u.email, u.avatar_url
-     FROM teachers t JOIN users u ON t.user_id = u.id
-     WHERE t.id = ?`
-  ).bind(id).first();
-
-  if (!teacher) return c.json(formatResponse(false, null, 'Teacher not found'), 404);
-
-  const courses = await db.prepare(
-    `SELECT id, title, price, thumbnail_url, average_rating, total_students, duration_days
-     FROM courses WHERE teacher_id = ? AND status = 'published'`
-  ).bind(id).all();
-
-  return c.json(formatResponse(true, { ...teacher as any, courses: courses.results }));
-});
-
 // GET /api/teachers/my/profile — current teacher's own profile
 router.get('/my/profile', authenticate, async (c) => {
   const user = c.get('user');
@@ -132,6 +110,8 @@ router.get('/my/profile', authenticate, async (c) => {
 // PUT /api/teachers/my/profile — update teacher profile & bank info
 router.put('/my/profile', authenticate, async (c) => {
   const user = c.get('user');
+  if (user.role !== 'teacher') return c.json(formatResponse(false, null, 'Only teachers can update teacher profile'), 403);
+
   const db = c.env.DB;
   const body = await c.req.json();
   const { bio, qualification, iban, bank_name, account_holder } = body;
@@ -173,6 +153,28 @@ router.get('/my/earnings', authenticate, async (c) => {
     commission_percent: teacher.commission_percent,
     recent_transactions: recentTransactions.results,
   }));
+});
+
+// GET /api/teachers/:id — public teacher profile
+router.get('/:id', async (c) => {
+  const db = c.env.DB;
+  const { id } = c.req.param();
+
+  const teacher = await db.prepare(
+    `SELECT t.id, t.bio, t.qualification, t.photo_url, t.status,
+            u.full_name, u.email, u.avatar_url
+     FROM teachers t JOIN users u ON t.user_id = u.id
+     WHERE t.id = ?`
+  ).bind(id).first();
+
+  if (!teacher) return c.json(formatResponse(false, null, 'Teacher not found'), 404);
+
+  const courses = await db.prepare(
+    `SELECT id, title, price, thumbnail_url, average_rating, total_students, duration_days
+     FROM courses WHERE teacher_id = ? AND status = 'published'`
+  ).bind(id).all();
+
+  return c.json(formatResponse(true, { ...teacher as any, courses: courses.results }));
 });
 
 export default router;

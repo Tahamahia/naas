@@ -12,6 +12,7 @@ router.post('/', authenticate, requireRoles('teacher'), async (c) => {
   const { amount } = await c.req.json();
 
   if (!amount || amount <= 0) return c.json(formatResponse(false, null, 'Invalid amount'), 400);
+  if (amount < 10) return c.json(formatResponse(false, null, 'Minimum withdrawal amount is 10'), 400);
 
   const teacher = await db.prepare(
     'SELECT id, total_earned, total_withdrawn, iban, bank_name, account_holder FROM teachers WHERE user_id = ?'

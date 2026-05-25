@@ -56,6 +56,15 @@ class _WithdrawalPageState extends State<WithdrawalPage> {
       }
       return;
     }
+    if (amount < 10) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: const Text('الحد الأدنى للسحب هو 10 د.ل'),
+          backgroundColor: AppTheme.errorColor,
+        ));
+      }
+      return;
+    }
 
     setState(() => _submitting = true);
     try {

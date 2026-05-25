@@ -143,7 +143,7 @@ router.post('/checkout', authenticate, async (c) => {
     // Teacher earnings
     const courseData = await db.prepare('SELECT teacher_id, price FROM courses WHERE id = ?')
       .bind(item.course_id).first() as any;
-    const teacher = await db.prepare('SELECT id, commission_fixed, commission_percent FROM teachers WHERE id = ?')
+    const teacher = await db.prepare('SELECT id, user_id, commission_fixed, commission_percent FROM teachers WHERE id = ?')
       .bind(courseData.teacher_id!).first() as any;
 
     const commissionFixed = teacher.commission_fixed || 0;
@@ -156,7 +156,7 @@ router.post('/checkout', authenticate, async (c) => {
     await db.prepare(
       `INSERT INTO transactions (id, user_id, type, amount, balance_before, balance_after, description, reference_id, status)
        VALUES (?, ?, 'commission', ?, 0, ?, ?, ?, 'pending')`
-    ).bind(transTeacherId, user.userId, teacherEarning, teacherEarning, `Course sale: ${item.title}`, subId).run();
+    ).bind(transTeacherId, teacher.user_id, teacherEarning, teacherEarning, `Course sale: ${item.title}`, subId).run();
 
     await db.prepare('UPDATE teachers SET total_earned = total_earned + ? WHERE id = ?')
       .bind(teacherEarning, courseData.teacher_id!).run();

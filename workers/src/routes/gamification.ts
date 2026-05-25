@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { formatResponse } from '../utils/helpers';
-import { authenticate } from '../middleware/auth';
+import { authenticate, requireRoles } from '../middleware/auth';
 import type { Env } from '../index';
 
 const router = new Hono<{ Bindings: Env }>();
@@ -47,7 +47,7 @@ router.get('/leaderboard', async (c) => {
 });
 
 // POST /api/gamification/award-points — award points (internal)
-router.post('/award-points', authenticate, async (c) => {
+router.post('/award-points', authenticate, requireRoles('admin', 'super_admin'), async (c) => {
   const db = c.env.DB;
   const { user_id, points, reason } = await c.req.json();
 

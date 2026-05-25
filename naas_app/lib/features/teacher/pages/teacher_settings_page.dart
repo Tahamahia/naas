@@ -40,8 +40,13 @@ class _TeacherSettingsPageState extends State<TeacherSettingsPage> {
           _loading = false;
         });
       }
-    } catch (_) {
-      if (mounted) setState(() => _loading = false);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('حدث خطأ: $e'), backgroundColor: Colors.red),
+        );
+        setState(() => _loading = false);
+      }
     }
   }
 

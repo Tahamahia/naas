@@ -35,8 +35,13 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
           _loading = false;
         });
       }
-    } catch (_) {
-      if (mounted) setState(() => _loading = false);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('حدث خطأ: $e'), backgroundColor: Colors.red),
+        );
+        setState(() => _loading = false);
+      }
     }
   }
 
@@ -109,7 +114,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                       const Spacer(),
                       TextButton.icon(
                         onPressed: () {
-                          Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateCoursePage()));
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateCoursePage())).then((_) => _loadData());
                         },
                         icon: const Icon(Icons.add),
                         label: const Text('إضافة كورس'),
@@ -178,7 +183,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
             ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateCoursePage()));
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const CreateCoursePage())).then((_) => _loadData());
         },
         icon: const Icon(Icons.add),
         label: const Text('كورس جديد'),

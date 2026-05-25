@@ -14,6 +14,9 @@ class _TeacherApplicationPageState extends State<TeacherApplicationPage> {
   final ApiClient _api = ApiClient();
   final _bioCtrl = TextEditingController();
   final _qualCtrl = TextEditingController();
+  final _idDocCtrl = TextEditingController();
+  final _certCtrl = TextEditingController();
+  final _photoCtrl = TextEditingController();
   String? _iban;
   String? _bankName;
   String? _accountHolder;
@@ -23,6 +26,9 @@ class _TeacherApplicationPageState extends State<TeacherApplicationPage> {
   void dispose() {
     _bioCtrl.dispose();
     _qualCtrl.dispose();
+    _idDocCtrl.dispose();
+    _certCtrl.dispose();
+    _photoCtrl.dispose();
     super.dispose();
   }
 
@@ -34,9 +40,9 @@ class _TeacherApplicationPageState extends State<TeacherApplicationPage> {
       final res = await _api.post('/teachers/apply', data: {
         'bio': _bioCtrl.text,
         'qualification': _qualCtrl.text,
-        'id_document_url': 'https://placeholder.ly/id.pdf',
-        'certificate_url': 'https://placeholder.ly/cert.pdf',
-        'photo_url': 'https://placeholder.ly/photo.jpg',
+        'id_document_url': _idDocCtrl.text.isNotEmpty ? _idDocCtrl.text : null,
+        'certificate_url': _certCtrl.text.isNotEmpty ? _certCtrl.text : null,
+        'photo_url': _photoCtrl.text.isNotEmpty ? _photoCtrl.text : null,
         'iban': _iban,
         'bank_name': _bankName,
         'account_holder': _accountHolder,
@@ -94,6 +100,29 @@ class _TeacherApplicationPageState extends State<TeacherApplicationPage> {
                 decoration: const InputDecoration(labelText: 'المؤهلات العلمية'),
                 maxLines: 2,
                 validator: (v) => v == null || v.length < 2 ? 'أدخل مؤهلاتك' : null,
+              ),
+              const SizedBox(height: 24),
+
+              const Text('الوثائق المطلوبة', style: TextStyle(fontWeight: FontWeight.w600)),
+              const SizedBox(height: 4),
+              Text('أدخل روابط الوثائق (يمكنك رفعها على Google Drive أو أي خدمة تخزين)', style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _idDocCtrl,
+                decoration: const InputDecoration(labelText: 'رابط وثيقة الهوية'),
+                validator: (v) => v == null || v.isEmpty ? 'أدخل رابط وثيقة الهوية' : null,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _certCtrl,
+                decoration: const InputDecoration(labelText: 'رابط الشهادة العلمية'),
+                validator: (v) => v == null || v.isEmpty ? 'أدخل رابط الشهادة' : null,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _photoCtrl,
+                decoration: const InputDecoration(labelText: 'رابط الصورة الشخصية'),
+                validator: (v) => v == null || v.isEmpty ? 'أدخل رابط الصورة' : null,
               ),
               const SizedBox(height: 24),
 

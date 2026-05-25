@@ -35,6 +35,27 @@ router.get('/my', authenticate, async (c) => {
   return c.json(formatResponse(true, subs.results));
 });
 
+// GET /api/subscriptions/teacher/students — teacher's students
+router.get('/teacher/students', authenticate, async (c) => {
+  const user = c.get('user');
+  const db = c.env.DB;
+
+  const teacher = await db.prepare('SELECT id FROM teachers WHERE user_id = ?').bind(user.userId).first() as any;
+  if (!teacher) return c.json(formatResponse(false, null, 'Teacher profile not found'), 404);
+
+  const students = await db.prepare(
+    `SELECT DISTINCT u.id, u.full_name, u.email, u.avatar_url, s.course_id, c.title as course_title,
+            s.status, s.start_date, s.end_date
+     FROM subscriptions s
+     JOIN users u ON s.user_id = u.id
+     JOIN courses c ON s.course_id = c.id
+     WHERE c.teacher_id = ?
+     ORDER BY s.created_at DESC`
+  ).bind(teacher.id!).all();
+
+  return c.json(formatResponse(true, students.results));
+});
+
 // GET /api/subscriptions/:id — subscription detail
 router.get('/:id', authenticate, async (c) => {
   const user = c.get('user');
@@ -94,27 +115,6 @@ router.post('/:id/renew', authenticate, async (c) => {
     .bind(price, user.userId).run();
 
   return c.json(formatResponse(true, null, 'Subscription renewed'));
-});
-
-// GET /api/subscriptions/teacher/students — teacher's students
-router.get('/teacher/students', authenticate, async (c) => {
-  const user = c.get('user');
-  const db = c.env.DB;
-
-  const teacher = await db.prepare('SELECT id FROM teachers WHERE user_id = ?').bind(user.userId).first() as any;
-  if (!teacher) return c.json(formatResponse(false, null, 'Teacher profile not found'), 404);
-
-  const students = await db.prepare(
-    `SELECT DISTINCT u.id, u.full_name, u.email, u.avatar_url, s.course_id, c.title as course_title,
-            s.status, s.start_date, s.end_date
-     FROM subscriptions s
-     JOIN users u ON s.user_id = u.id
-     JOIN courses c ON s.course_id = c.id
-     WHERE c.teacher_id = ?
-     ORDER BY s.created_at DESC`
-  ).bind(teacher.id!).all();
-
-  return c.json(formatResponse(true, students.results));
 });
 
 export default router;

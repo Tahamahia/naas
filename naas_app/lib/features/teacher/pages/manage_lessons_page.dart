@@ -30,8 +30,13 @@ class _ManageLessonsPageState extends State<ManageLessonsPage> {
           _loading = false;
         });
       }
-    } catch (_) {
-      if (mounted) setState(() => _loading = false);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('حدث خطأ: $e'), backgroundColor: Colors.red),
+        );
+        setState(() => _loading = false);
+      }
     }
   }
 
@@ -58,7 +63,13 @@ class _ManageLessonsPageState extends State<ManageLessonsPage> {
           'sort_order': _sections.length,
         });
         _loadCourse();
-      } catch (_) {}
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('حدث خطأ: $e'), backgroundColor: Colors.red),
+          );
+        }
+      }
     }
   }
 
@@ -96,7 +107,13 @@ class _ManageLessonsPageState extends State<ManageLessonsPage> {
       try {
         await _api.put('/courses/sections/$sectionId', data: {'title': result});
         _loadCourse();
-      } catch (_) {}
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('حدث خطأ: $e'), backgroundColor: Colors.red),
+          );
+        }
+      }
     }
   }
 
@@ -120,7 +137,13 @@ class _ManageLessonsPageState extends State<ManageLessonsPage> {
       try {
         await _api.delete('/courses/sections/$sectionId');
         _loadCourse();
-      } catch (_) {}
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('حدث خطأ: $e'), backgroundColor: Colors.red),
+          );
+        }
+      }
     }
   }
 
@@ -139,7 +162,13 @@ class _ManageLessonsPageState extends State<ManageLessonsPage> {
 
     try {
       await _api.put('/courses/${widget.courseId}/sections/reorder', data: {'sections': payload});
-    } catch (_) {}
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('حدث خطأ: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
   @override
@@ -216,7 +245,33 @@ class _ManageLessonsPageState extends State<ManageLessonsPage> {
                                   await _api.delete('/courses/lessons/${lesson['id']}');
                                   _loadCourse();
                                 } else if (v == 'edit') {
-                                  // Todo: Show edit dialog
+                                  final titleCtrl = TextEditingController(text: lesson['title'] ?? '');
+                                  final newTitle = await showDialog<String>(
+                                    context: context,
+                                    builder: (_) => AlertDialog(
+                                      title: const Text('تعديل عنوان الدرس'),
+                                      content: TextField(
+                                        controller: titleCtrl,
+                                        decoration: const InputDecoration(labelText: 'عنوان الدرس'),
+                                      ),
+                                      actions: [
+                                        TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
+                                        ElevatedButton(onPressed: () => Navigator.pop(context, titleCtrl.text), child: const Text('حفظ')),
+                                      ],
+                                    ),
+                                  );
+                                  if (newTitle != null && newTitle.isNotEmpty && newTitle != lesson['title']) {
+                                    try {
+                                      await _api.put('/courses/lessons/${lesson['id']}', data: {'title': newTitle});
+                                      _loadCourse();
+                                    } catch (e) {
+                                      if (mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text('حدث خطأ: $e'), backgroundColor: Colors.red),
+                                        );
+                                      }
+                                    }
+                                  }
                                 }
                               },
                             ),

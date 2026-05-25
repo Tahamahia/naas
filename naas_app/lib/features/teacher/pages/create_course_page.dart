@@ -24,6 +24,7 @@ class _CreateCoursePageState extends State<CreateCoursePage> {
   String? _selectedCategory;
   String _level = 'all';
   String _dripType = 'none';
+  String _status = 'draft';
   List<dynamic> _categories = [];
   bool _saving = false;
   bool _loadingCourse = false;
@@ -70,11 +71,17 @@ class _CreateCoursePageState extends State<CreateCoursePage> {
           _selectedCategory = c['category_id'];
           _level = c['level'] ?? 'all';
           _dripType = c['drip_type'] ?? 'none';
+          _status = c['status'] ?? 'draft';
           _loadingCourse = false;
         });
       }
-    } catch (_) {
-      if (mounted) setState(() => _loadingCourse = false);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('حدث خطأ: $e'), backgroundColor: Colors.red),
+        );
+        setState(() => _loadingCourse = false);
+      }
     }
   }
 
@@ -84,7 +91,13 @@ class _CreateCoursePageState extends State<CreateCoursePage> {
       if (res.data['success'] == true && mounted) {
         setState(() => _categories = res.data['data'] as List);
       }
-    } catch (_) {}
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('حدث خطأ في تحميل الأقسام: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
   Future<void> _save() async {
@@ -102,6 +115,7 @@ class _CreateCoursePageState extends State<CreateCoursePage> {
         'category_id': _selectedCategory,
         'level': _level,
         'drip_type': _dripType,
+        'status': _status,
       };
 
       final res = _isEditing
@@ -162,7 +176,10 @@ class _CreateCoursePageState extends State<CreateCoursePage> {
               const SizedBox(height: 16),
               TextFormField(
                 controller: _thumbnailCtrl,
-                decoration: const InputDecoration(labelText: 'رابط الصورة المصغرة (مؤقتاً)'),
+                decoration: const InputDecoration(
+                  labelText: 'رابط الصورة المصغرة',
+                  helperText: 'أدخل رابط صورة مباشر (مثل: رابط من Imgur أو خدمة رفع صور)',
+                ),
               ),
               const SizedBox(height: 16),
               Row(
@@ -193,11 +210,12 @@ class _CreateCoursePageState extends State<CreateCoursePage> {
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 decoration: const InputDecoration(labelText: 'القسم'),
+                value: _selectedCategory != null && _categories.any((cat) => cat['id'] == _selectedCategory) ? _selectedCategory : null,
                 items: _categories.map((cat) => DropdownMenuItem<String>(
                   value: cat['id'] as String?,
                   child: Text(cat['name'] as String? ?? ''),
                 )).toList(),
-                onChanged: (v) => _selectedCategory = v,
+                onChanged: (v) => setState(() => _selectedCategory = v),
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
@@ -220,6 +238,13 @@ class _CreateCoursePageState extends State<CreateCoursePage> {
                   DropdownMenuItem(value: 'days', child: Text('فتح حسب أيام محددة')),
                 ],
                 onChanged: (v) => _dripType = v ?? 'none',
+              ),
+              const SizedBox(height: 16),
+              SwitchListTile(
+                title: const Text('نشر الكورس'),
+                subtitle: Text(_status == 'published' ? 'الكورس منشور ومرئي للطلاب' : 'الكورس مسودة (غير مرئي)'),
+                value: _status == 'published',
+                onChanged: (v) => setState(() => _status = v ? 'published' : 'draft'),
               ),
               const SizedBox(height: 32),
               SizedBox(
