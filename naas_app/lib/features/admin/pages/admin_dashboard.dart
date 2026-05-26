@@ -76,7 +76,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                         _StatCard(title: 'الكورسات', value: '${_stats!['courses']?['published'] ?? 0}', icon: Icons.video_library, color: Colors.green,
                           onTap: () => _navigate(const AdminCoursesPage())),
                         _StatCard(title: 'الأساتذة', value: '${_stats!['teachers']?['approved'] ?? 0}', icon: Icons.school, color: Colors.orange,
-                          onTap: () => _navigate(const AdminUsersPage(roleFilter: 'teacher'))),
+                          onTap: () => _navigate(const AdminTeachersPage())),
                         _StatCard(title: 'الاشتراكات', value: '${_stats!['subscriptions']?['active'] ?? 0}', icon: Icons.subscriptions, color: Colors.purple),
                         _StatCard(title: 'الإيرادات', value: '${(_stats!['revenue'] ?? 0).toStringAsFixed(0)} د.ل', icon: Icons.monetization_on, color: Colors.teal),
                         _StatCard(title: 'الإيداعات', value: '${(_stats!['deposits'] ?? 0).toStringAsFixed(0)} د.ل', icon: Icons.account_balance, color: Colors.indigo,
