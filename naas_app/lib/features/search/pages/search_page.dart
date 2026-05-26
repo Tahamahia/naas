@@ -119,7 +119,7 @@ class _SearchPageState extends State<SearchPage> {
                 children: [
                   if (_selectedCategory != null)
                     Chip(
-                      label: Text(_selectedCategory!),
+                      label: Text(_categories.firstWhere((c) => c['id'] == _selectedCategory, orElse: () => {'name': _selectedCategory})['name'] ?? ''),
                       onDeleted: () => setState(() { _selectedCategory = null; _search(); }),
                     ),
                   if (_selectedLevel != null)
@@ -250,7 +250,7 @@ class _SearchPageState extends State<SearchPage> {
                     label: Text({'all': 'الكل', 'beginner': 'مبتدئ', 'intermediate': 'متوسط', 'advanced': 'متقدم'}[l]!),
                     selected: _selectedLevel == l,
                     onSelected: (v) {
-                      setState(() => _selectedLevel = v ? l : null);
+                      setState(() => _selectedLevel = (l == 'all') ? null : (v ? l : null));
                       Navigator.pop(context);
                       _search();
                     },

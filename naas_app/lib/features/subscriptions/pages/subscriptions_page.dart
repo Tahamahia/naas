@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../models/subscription_model.dart';
+import '../../auth/bloc/auth_bloc.dart';
 import '../../course_detail/pages/course_detail_page.dart';
 
 class SubscriptionsPage extends StatefulWidget {
@@ -206,6 +208,7 @@ class _SubscriptionsPageState extends State<SubscriptionsPage>
               backgroundColor: Colors.green,
             ),
           );
+          context.read<AuthBloc>().add(RefreshUserEvent());
           _loadSubscriptions();
         } else {
           ScaffoldMessenger.of(context).showSnackBar(

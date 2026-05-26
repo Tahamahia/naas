@@ -15,7 +15,6 @@ import '../../../features/admin/pages/admin_courses_page.dart';
 import '../../../features/settings/pages/settings_page.dart';
 import '../../../features/subscriptions/pages/subscriptions_page.dart';
 import '../../../features/notifications/pages/notifications_page.dart';
-import '../../../core/utils/ui_helpers.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -99,18 +98,16 @@ class ProfilePage extends StatelessWidget {
                 _MenuItem(icon: Icons.account_balance_wallet, title: 'المحفظة', color: Colors.blue, onTap: () {
                   Navigator.push(context, MaterialPageRoute(builder: (_) => const WalletPage()));
                 }),
-                const Divider(height: 1),
-                _MenuItem(icon: Icons.subscriptions, title: 'اشتراكاتي', color: Colors.green, onTap: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => const SubscriptionsPage()));
-                }),
-                const Divider(height: 1),
-                _MenuItem(icon: Icons.favorite_border, title: 'المفضلة', color: Colors.red, onTap: () => showComingSoon(context)),
+                if (!user.isAdmin) ...[
+                  const Divider(height: 1),
+                  _MenuItem(icon: Icons.subscriptions, title: 'اشتراكاتي', color: Colors.green, onTap: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const SubscriptionsPage()));
+                  }),
+                ],
                 const Divider(height: 1),
                 _MenuItem(icon: Icons.notifications_outlined, title: 'الإشعارات', color: Colors.orange, onTap: () {
                   Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsPage()));
                 }),
-                const Divider(height: 1),
-                _MenuItem(icon: Icons.download_outlined, title: 'الدروس المحملة', color: Colors.teal, onTap: () => showComingSoon(context)),
               ],
             ),
           ),
@@ -149,7 +146,6 @@ class ProfilePage extends StatelessWidget {
                     Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminUsersPage()));
                   }),
                   const Divider(height: 1),
-                  // TODO: إضافة صفحة مخصصة للأساتذة
                   _MenuItem(icon: Icons.school, title: 'الأساتذة', color: Colors.indigo, onTap: () {
                     Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminTeachersPage()));
                   }),

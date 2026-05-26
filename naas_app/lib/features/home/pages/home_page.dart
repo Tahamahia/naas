@@ -33,6 +33,8 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _loadData();
+    // تحديث بيانات المستخدم (الرصيد، النقاط) عند فتح الرئيسية
+    context.read<AuthBloc>().add(RefreshUserEvent());
   }
 
   Future<void> _loadData() async {

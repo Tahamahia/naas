@@ -15,7 +15,7 @@ class PlayerPage extends StatefulWidget {
 
 class _PlayerPageState extends State<PlayerPage> {
   final ApiClient _api = ApiClient();
-  final bool _isPlaying = false;
+  bool _isPlaying = true;
   int _progressSeconds = 0;
   late String _viewId;
 
@@ -164,7 +164,18 @@ class _PlayerPageState extends State<PlayerPage> {
             Text(lesson.pdfName!, style: TextStyle(color: Colors.grey.shade600)),
           const SizedBox(height: 24),
           ElevatedButton.icon(
-            onPressed: () {},
+            onPressed: () {
+              if (lesson.pdfUrl != null && lesson.pdfUrl!.isNotEmpty) {
+                // Open PDF in new tab via url_launcher or web approach
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('جاري فتح الملف...')),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('ملف PDF غير متوفر')),
+                );
+              }
+            },
             icon: const Icon(Icons.download),
             label: const Text('تحميل PDF'),
           ),

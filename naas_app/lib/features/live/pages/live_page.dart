@@ -75,7 +75,35 @@ class _LivePageState extends State<LivePage> {
                                   Text('مباشر', style: TextStyle(color: Colors.white, fontSize: 11)),
                                 ]))
                             : const Icon(Icons.chevron_left),
-                        onTap: () {},
+                        onTap: () {
+                          showDialog(
+                            context: context,
+                            builder: (_) => AlertDialog(
+                              title: Text(s['title'] ?? ''),
+                              content: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (s['course_title'] != null) Text('الكورس: ${s['course_title']}'),
+                                  if (s['scheduled_at'] != null) Text('الموعد: ${s['scheduled_at']?.substring(0, 16)}'),
+                                  if (s['duration_minutes'] != null) Text('المدة: ${s['duration_minutes']} دقيقة'),
+                                  if (s['description'] != null) ...[
+                                    const SizedBox(height: 8),
+                                    Text(s['description']),
+                                  ],
+                                ],
+                              ),
+                              actions: [
+                                TextButton(onPressed: () => Navigator.pop(context), child: const Text('إغلاق')),
+                                if (s['status'] == 'live' && s['meeting_url'] != null)
+                                  ElevatedButton(
+                                    onPressed: () => Navigator.pop(context),
+                                    child: const Text('انضم الآن'),
+                                  ),
+                              ],
+                            ),
+                          );
+                        },
                       ),
                     );
                   },

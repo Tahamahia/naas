@@ -161,16 +161,50 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                         title: Text(c['title'] ?? '', style: const TextStyle(fontWeight: FontWeight.w600)),
                         subtitle: Text(c['status'] == 'published' ? 'منشور' : c['status'] == 'draft' ? 'مسودة' : c['status'] ?? ''),
                         trailing: PopupMenuButton<String>(
-                          onSelected: (val) {
+                          onSelected: (val) async {
                             if (val == 'edit') {
                               Navigator.push(context, MaterialPageRoute(builder: (_) => CreateCoursePage(editCourseId: c['id']))).then((_) => _loadData());
                             } else if (val == 'content') {
                               Navigator.push(context, MaterialPageRoute(builder: (_) => ManageLessonsPage(courseId: c['id'])));
+                            } else if (val == 'delete') {
+                              final confirm = await showDialog<bool>(
+                                context: context,
+                                builder: (_) => AlertDialog(
+                                  title: const Text('حذف الكورس'),
+                                  content: Text('هل أنت متأكد من حذف "${c['title']}"؟\nسيتم حذف جميع الأقسام والدروس.'),
+                                  actions: [
+                                    TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('إلغاء')),
+                                    ElevatedButton(
+                                      style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                                      onPressed: () => Navigator.pop(context, true),
+                                      child: const Text('حذف نهائي'),
+                                    ),
+                                  ],
+                                ),
+                              );
+                              if (confirm == true) {
+                                try {
+                                  await _api.delete('/courses/${c['id']}');
+                                  _loadData();
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('تم حذف الكورس'), backgroundColor: Colors.green),
+                                    );
+                                  }
+                                } catch (e) {
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('فشل الحذف: $e'), backgroundColor: Colors.red),
+                                    );
+                                  }
+                                }
+                              }
                             }
                           },
                           itemBuilder: (context) => [
                             const PopupMenuItem(value: 'content', child: Text('إدارة المحتوى والدروس')),
                             const PopupMenuItem(value: 'edit', child: Text('تعديل الكورس')),
+                            const PopupMenuItem(value: 'delete', child: Text('حذف الكورس', style: TextStyle(color: Colors.red))),
                           ],
                         ),
                         onTap: () {
