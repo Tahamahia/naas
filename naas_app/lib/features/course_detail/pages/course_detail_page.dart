@@ -263,18 +263,42 @@ class _CourseDetailViewState extends State<_CourseDetailView> {
                 ),
               ],
             ),
-            bottomNavigationBar: isSubscribed || course.isFree
-                ? null
+            bottomNavigationBar: isSubscribed
+                ? SafeArea(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          // Navigate to first lesson if available
+                          if (course.sections != null && course.sections!.isNotEmpty) {
+                            final firstLesson = course.sections!.first.lessons?.first;
+                            if (firstLesson != null) {
+                              Navigator.push(context, MaterialPageRoute(
+                                builder: (_) => PlayerPage(lesson: firstLesson),
+                              ));
+                            }
+                          }
+                        },
+                        icon: const Icon(Icons.play_circle),
+                        label: const Text('شاهد الدروس'),
+                        style: ElevatedButton.styleFrom(
+                          minimumSize: const Size(double.infinity, 54),
+                          backgroundColor: Colors.green,
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                    ),
+                  )
                 : SafeArea(
                     child: Padding(
                       padding: const EdgeInsets.all(16),
                       child: ElevatedButton.icon(
                         onPressed: () => _addToCart(course.id),
-                        icon: const Icon(Icons.shopping_cart),
-                        label: Text('أضف إلى السلة - ${course.priceFormatted}'),
+                        icon: Icon(course.isFree ? Icons.check_circle : Icons.shopping_cart),
+                        label: Text(course.isFree ? 'اشترك مجاناً' : 'أضف إلى السلة - ${course.priceFormatted}'),
                         style: ElevatedButton.styleFrom(
                           minimumSize: const Size(double.infinity, 54),
-                          backgroundColor: AppTheme.primaryColor,
+                          backgroundColor: course.isFree ? Colors.green : AppTheme.primaryColor,
                           foregroundColor: Colors.white,
                         ),
                       ),

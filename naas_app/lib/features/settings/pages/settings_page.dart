@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../../core/utils/ui_helpers.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../core/api/api_client.dart';
+import '../../auth/bloc/auth_bloc.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -9,7 +11,62 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  bool _isDark = false;
+  final ApiClient _api = ApiClient();
+
+  Future<void> _deleteAccount() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('حذف الحساب'),
+        content: const Text(
+          'هل أنت متأكد من حذف حسابك نهائياً؟\n\nسيتم حذف جميع بياناتك ولن تتمكن من استرجاعها.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('إلغاء')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('حذف نهائياً'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    // تأكيد ثاني
+    final doubleConfirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('تأكيد أخير'),
+        content: const Text('هذا الإجراء لا يمكن التراجع عنه. هل تريد المتابعة؟'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('لا، تراجع')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('نعم، احذف حسابي'),
+          ),
+        ],
+      ),
+    );
+    if (doubleConfirm != true || !mounted) return;
+
+    try {
+      await _api.delete('/auth/account');
+      if (mounted) {
+        context.read<AuthBloc>().add(LogoutEvent());
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم حذف حسابك بنجاح'), backgroundColor: Colors.green),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('فشل حذف الحساب'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,23 +78,16 @@ class _SettingsPageState extends State<SettingsPage> {
           Card(
             child: Column(
               children: [
-                SwitchListTile(
-                  title: const Text('الوضع الليلي'),
-                  subtitle: const Text('تغيير مظهر التطبيق'),
-                  secondary: Icon(_isDark ? Icons.dark_mode : Icons.light_mode, color: _isDark ? Colors.amber : Colors.grey),
-                  value: _isDark,
-                  onChanged: (v) {
-                    setState(() => _isDark = v);
-                    // In a full implementation, this would update theme
-                  },
-                ),
-                const Divider(height: 1),
                 ListTile(
                   leading: const Icon(Icons.language),
                   title: const Text('اللغة'),
                   subtitle: const Text('العربية'),
                   trailing: const Icon(Icons.chevron_left),
-                  onTap: () => showComingSoon(context),
+                  onTap: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('اللغة العربية هي اللغة الوحيدة المدعومة حالياً')),
+                    );
+                  },
                 ),
                 const Divider(height: 1),
                 ListTile(
@@ -45,7 +95,11 @@ class _SettingsPageState extends State<SettingsPage> {
                   title: const Text('الإشعارات'),
                   subtitle: const Text('إدارة إشعارات التطبيق'),
                   trailing: const Icon(Icons.chevron_left),
-                  onTap: () => showComingSoon(context),
+                  onTap: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('إعدادات الإشعارات ستتوفر في التحديث القادم')),
+                    );
+                  },
                 ),
               ],
             ),
@@ -59,21 +113,36 @@ class _SettingsPageState extends State<SettingsPage> {
                   title: const Text('حول التطبيق'),
                   subtitle: const Text('ناس — منصة تعليمية ليبية'),
                   trailing: const Icon(Icons.chevron_left),
-                  onTap: () => showComingSoon(context),
+                  onTap: () {
+                    showAboutDialog(
+                      context: context,
+                      applicationName: 'ناس',
+                      applicationVersion: '1.0.0',
+                      children: [const Text('منصة تعليمية ليبية لتعلم من أفضل الأساتذة')],
+                    );
+                  },
                 ),
                 const Divider(height: 1),
                 ListTile(
                   leading: const Icon(Icons.description_outlined),
                   title: const Text('الشروط و الأحكام'),
                   trailing: const Icon(Icons.chevron_left),
-                  onTap: () => showComingSoon(context),
+                  onTap: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('الشروط والأحكام ستتوفر قريباً')),
+                    );
+                  },
                 ),
                 const Divider(height: 1),
                 ListTile(
                   leading: const Icon(Icons.privacy_tip_outlined),
                   title: const Text('سياسة الخصوصية'),
                   trailing: const Icon(Icons.chevron_left),
-                  onTap: () => showComingSoon(context),
+                  onTap: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('سياسة الخصوصية ستتوفر قريباً')),
+                    );
+                  },
                 ),
               ],
             ),
@@ -83,7 +152,8 @@ class _SettingsPageState extends State<SettingsPage> {
             child: ListTile(
               leading: const Icon(Icons.delete_outline, color: Colors.red),
               title: const Text('حذف الحساب', style: TextStyle(color: Colors.red)),
-              onTap: () => showComingSoon(context),
+              subtitle: const Text('حذف حسابك وجميع بياناتك نهائياً'),
+              onTap: _deleteAccount,
             ),
           ),
           const SizedBox(height: 24),

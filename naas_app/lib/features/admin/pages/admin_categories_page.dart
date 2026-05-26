@@ -51,7 +51,7 @@ class _AdminCategoriesPageState extends State<AdminCategoriesPage> {
     if (result == null || result.trim().isEmpty) return;
     try {
       if (isEdit) {
-        await _api.put('/categories/${category!['id']}', data: {'name': result.trim()});
+        await _api.put('/categories/${category['id']}', data: {'name': result.trim()});
       } else {
         await _api.post('/categories', data: {'name': result.trim(), 'icon': 'category'});
       }

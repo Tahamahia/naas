@@ -195,8 +195,6 @@ class ProfilePage extends StatelessWidget {
                   Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsPage()));
                 }),
                 const Divider(height: 1),
-                _MenuItem(icon: Icons.dark_mode, title: 'الوضع الليلي', color: Colors.black87, onTap: () => showComingSoon(context)),
-                const Divider(height: 1),
                 _MenuItem(icon: Icons.logout, title: 'تسجيل الخروج', color: Colors.red, onTap: () {
                   context.read<AuthBloc>().add(LogoutEvent());
                 }),

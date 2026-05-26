@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../auth/bloc/auth_bloc.dart';
 
 class CartPage extends StatefulWidget {
   const CartPage({super.key});
@@ -47,6 +49,8 @@ class _CartPageState extends State<CartPage> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(res.data['message'] ?? 'تم الشراء بنجاح'), backgroundColor: Colors.green),
           );
+          // تحديث رصيد المحفظة
+          context.read<AuthBloc>().add(RefreshUserEvent());
           _loadCart();
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -68,7 +72,13 @@ class _CartPageState extends State<CartPage> {
     try {
       await _api.delete('/cart/$courseId');
       _loadCart();
-    } catch (_) {}
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('فشل حذف العنصر'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
   @override

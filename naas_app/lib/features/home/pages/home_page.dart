@@ -12,6 +12,8 @@ import '../../teacher/pages/withdrawal_page.dart';
 import '../../notifications/pages/notifications_page.dart';
 import '../../admin/pages/admin_dashboard.dart';
 import '../../admin/pages/admin_users_page.dart';
+import '../../admin/pages/admin_teachers_page.dart';
+import '../../admin/pages/admin_deposits_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -87,7 +89,14 @@ class _HomePageState extends State<HomePage> {
               label: _unreadCount > 0 ? Text('$_unreadCount', style: const TextStyle(fontSize: 10)) : null,
               child: const Icon(Icons.notifications_outlined),
             ),
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsPage())),
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsPage())).then((_) {
+              // تحديث عداد الإشعارات عند العودة
+              _api.get('/notifications').then((res) {
+                if (res.data['success'] == true && mounted) {
+                  setState(() => _unreadCount = res.data['data']['unread_count'] ?? 0);
+                }
+              }).catchError((_) {});
+            }),
           ),
           if (user != null)
             Padding(
@@ -239,8 +248,20 @@ class _HomePageState extends State<HomePage> {
           }),
           const SizedBox(width: 12),
           _ActionCard(icon: Icons.school, label: 'الأساتذة', color: Colors.indigo, onTap: () {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminUsersPage()));
+            Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminTeachersPage()));
           }),
+        ],
+      ),
+      const SizedBox(height: 8),
+      Row(
+        children: [
+          _ActionCard(icon: Icons.account_balance, label: 'الإيداعات', color: Colors.green, onTap: () {
+            Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminDepositsPage()));
+          }),
+          const SizedBox(width: 12),
+          const Expanded(child: SizedBox()),
+          const SizedBox(width: 12),
+          const Expanded(child: SizedBox()),
         ],
       ),
     ];

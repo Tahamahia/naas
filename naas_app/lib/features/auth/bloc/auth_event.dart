@@ -37,3 +37,5 @@ class UpdateProfileEvent extends AuthEvent {
   @override
   List<Object?> get props => [data];
 }
+
+class RefreshUserEvent extends AuthEvent {}

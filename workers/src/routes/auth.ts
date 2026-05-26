@@ -39,7 +39,9 @@ router.post('/register', async (c) => {
     'INSERT INTO users (id, email, password_hash, full_name, phone, referral_code) VALUES (?, ?, ?, ?, ?, ?)'
   ).bind(id, email, passwordHash, full_name, phone || null, referralCode).run();
 
-  const user = await db.prepare('SELECT id, email, full_name, role FROM users WHERE id = ?').bind(id).first() as any;
+  const user = await db.prepare(
+    'SELECT id, email, full_name, phone, avatar_url, role, status, wallet_balance, points, referral_code, lang FROM users WHERE id = ?'
+  ).bind(id).first() as any;
   const payload = { userId: user.id!, email: user.email!, role: user.role! as any };
   const accessToken = await generateAccessToken(payload);
   const refreshToken = await generateRefreshToken(payload);
@@ -122,6 +124,19 @@ router.put('/fcm-token', authenticate, async (c) => {
   const { fcm_token } = await c.req.json();
   await db.prepare('UPDATE users SET fcm_token = ? WHERE id = ?').bind(fcm_token, user.userId).run();
   return c.json(formatResponse(true, null, 'FCM token updated'));
+});
+
+// DELETE /api/auth/account — soft-delete user account
+router.delete('/account', authenticate, async (c) => {
+  const user = c.get('user');
+  const db = c.env.DB;
+
+  // Soft delete: set status to 'deleted' instead of actually deleting
+  await db.prepare(
+    "UPDATE users SET status = 'deleted', email = email || '_deleted_' || id, updated_at = datetime('now') WHERE id = ?"
+  ).bind(user.userId).run();
+
+  return c.json(formatResponse(true, null, 'Account deleted'));
 });
 
 export default router;

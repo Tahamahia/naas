@@ -15,6 +15,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<CheckAuthEvent>(_onCheckAuth);
     on<LogoutEvent>(_onLogout);
     on<UpdateProfileEvent>(_onUpdateProfile);
+    on<RefreshUserEvent>(_onRefreshUser);
   }
 
   Future<void> _onLogin(LoginEvent event, Emitter<AuthState> emit) async {
@@ -85,6 +86,16 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     if (state is AuthAuthenticated) {
       try {
         await _api.put('/auth/profile', data: event.data);
+        final res = await _api.get('/auth/me');
+        if (res.data['success'] == true) {
+          emit(AuthAuthenticated(UserModel.fromJson(res.data['data'])));
+        }
+      } catch (_) {}
+    }
+  }
+  Future<void> _onRefreshUser(RefreshUserEvent event, Emitter<AuthState> emit) async {
+    if (state is AuthAuthenticated) {
+      try {
         final res = await _api.get('/auth/me');
         if (res.data['success'] == true) {
           emit(AuthAuthenticated(UserModel.fromJson(res.data['data'])));
