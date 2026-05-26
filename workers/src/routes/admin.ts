@@ -187,4 +187,53 @@ router.post('/admins', requireRoles('super_admin'), async (c) => {
   return c.json(formatResponse(true, { id }, 'Admin created'), 201);
 });
 
+// GET /api/admin/pending-deposits — list pending manual deposits
+router.get('/pending-deposits', async (c) => {
+  const db = c.env.DB;
+  const deposits = await db.prepare(
+    `SELECT t.*, u.full_name, u.email FROM transactions t
+     JOIN users u ON t.user_id = u.id
+     WHERE t.type = 'deposit_manual' AND t.status = 'pending'
+     ORDER BY t.created_at DESC`
+  ).all();
+  return c.json(formatResponse(true, deposits.results));
+});
+
+// GET /api/admin/courses — list all courses for admin management
+router.get('/courses', async (c) => {
+  const db = c.env.DB;
+  const { page = '1', limit = '50', status } = c.req.query();
+
+  let query = `SELECT c.*, u.full_name as teacher_name FROM courses c
+               JOIN teachers t ON c.teacher_id = t.id
+               JOIN users u ON t.user_id = u.id WHERE 1=1`;
+  const params: any[] = [];
+
+  if (status) { query += ' AND c.status = ?'; params.push(status); }
+  query += ' ORDER BY c.created_at DESC LIMIT ? OFFSET ?';
+  const offset = (Number(page) - 1) * Number(limit);
+  params.push(Number(limit), offset);
+
+  const courses = await db.prepare(query).bind(...params).all();
+  return c.json(formatResponse(true, courses.results));
+});
+
+// PUT /api/admin/courses/:id/status — change course status
+router.put('/courses/:id/status', async (c) => {
+  const db = c.env.DB;
+  const { id } = c.req.param();
+  const { status } = await c.req.json();
+
+  const validStatuses = ['published', 'draft', 'pending', 'disabled'];
+  if (!validStatuses.includes(status)) {
+    return c.json(formatResponse(false, null, 'Invalid status'), 400);
+  }
+
+  await db.prepare(
+    "UPDATE courses SET status = ?, updated_at = datetime('now') WHERE id = ?"
+  ).bind(status, id).run();
+
+  return c.json(formatResponse(true, null, 'Course status updated'));
+});
+
 export default router;
